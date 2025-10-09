@@ -49,7 +49,25 @@
     <div class="container mx-auto p-6">
         <!-- 標題 -->
         <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">教室座位安排系統</h1>
+            <div class="flex items-center justify-center gap-4 mb-4">
+                <h1 class="text-4xl font-bold text-gray-800">教室座位安排系統</h1>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <button id="classSelector" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-lg">
+                            <span id="currentClassName">101</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="classDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden max-h-64 overflow-y-auto">
+                            <!-- 班級列表將在這裡動態生成 -->
+                        </div>
+                    </div>
+                    <button id="manageClasses" class="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-sm">
+                        班級管理
+                    </button>
+                </div>
+            </div>
             <p class="text-gray-600">編輯學生資料、安排座位、管理獎勵積分</p>
         </div>
 
@@ -67,7 +85,7 @@
                         考試座位
                     </button>
                 </div>
-                <div class="flex gap-2 flex-wrap">
+                <div class="flex gap-2 flex-wrap items-center">
                     <button id="studentView" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
                         學生視角
                     </button>
@@ -80,10 +98,12 @@
                     <button id="showScores" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
                         查看積分
                     </button>
+                    
+                    <!-- 分隔線 -->
+                    <div class="h-8 w-px bg-gray-300 mx-2"></div>
+                    
+                    <!-- 抽籤功能區 -->
                     <div class="flex gap-1 flex-wrap">
-                        <button id="batchSetup" class="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-sm">
-                            批量設定
-                        </button>
                         <button id="drawAll" class="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm">
                             全部抽籤
                         </button>
@@ -106,8 +126,13 @@
             <!-- 學生名單 -->
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-lg shadow-lg p-4">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">學生名單</h3>
-                    <div id="studentList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">學生名單</h3>
+                        <button id="batchSetup" class="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-sm">
+                            批量設定
+                        </button>
+                    </div>
+                    <div id="studentList" class="space-y-2 max-h-[28rem] overflow-y-auto">
                         <!-- 學生列表將在這裡動態生成 -->
                     </div>
                 </div>
@@ -266,6 +291,57 @@
         </div>
     </div>
 
+    <!-- 班級管理模態框 -->
+    <div id="classModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-semibold mb-4">班級管理</h3>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-sm font-medium text-gray-700">班級列表</label>
+                        <button id="addNewClass" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors">
+                            + 新增班級
+                        </button>
+                    </div>
+                    <div id="classManageList" class="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        <!-- 班級管理列表將在這裡顯示 -->
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div class="text-sm text-blue-800">
+                        <strong>提示：</strong>每個班級的資料都是獨立保存的，切換班級不會影響其他班級的資料。
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="closeClassModal" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                        關閉
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/編輯班級模態框 -->
+    <div id="classEditModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 id="classEditTitle" class="text-lg font-semibold mb-4">新增班級</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">班級名稱</label>
+                    <input id="classNameInput" type="text" placeholder="例如：106" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex gap-2">
+                    <button id="saveClass" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        保存
+                    </button>
+                    <button id="cancelClassEdit" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 批量設定模態框 -->
     <div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -313,6 +389,8 @@
     <script>
         class ClassroomManager {
             constructor() {
+                this.classes = this.loadClasses();
+                this.currentClass = this.loadCurrentClass();
                 this.students = this.loadStudents();
                 this.currentMode = 'normal'; // 'normal', 'group', or 'exam'
                 this.normalSeats = this.loadSeats('normal');
@@ -325,14 +403,36 @@
                 this.isStudentView = false;
                 this.selectedStudent = null; // 抽籤選中的學生
                 this.isLotteryRunning = false; // 抽籤動畫進行中
+                this.editingClass = null; // 正在編輯的班級
                 
                 this.initializeEventListeners();
+                this.renderClassSelector();
                 this.renderStudentList();
                 this.renderSeats();
             }
 
+            loadClasses() {
+                const saved = localStorage.getItem('classroom_classes');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+                // 預設班級
+                return [
+                    { id: 'class_1', name: '101' },
+                    { id: 'class_2', name: '102' },
+                    { id: 'class_3', name: '103' },
+                    { id: 'class_4', name: '104' },
+                    { id: 'class_5', name: '105' }
+                ];
+            }
+
+            loadCurrentClass() {
+                const saved = localStorage.getItem('classroom_current_class');
+                return saved || 'class_1';
+            }
+
             loadStudents() {
-                const saved = localStorage.getItem('classroom_students');
+                const saved = localStorage.getItem(`classroom_students_${this.currentClass}`);
                 if (saved) {
                     return JSON.parse(saved);
                 }
@@ -350,25 +450,27 @@
             }
 
             loadSeats(mode) {
-                const saved = localStorage.getItem(`classroom_seats_${mode}`);
+                const saved = localStorage.getItem(`classroom_seats_${mode}_${this.currentClass}`);
                 return saved ? JSON.parse(saved) : {};
             }
 
             loadScores() {
-                const saved = localStorage.getItem('classroom_scores');
+                const saved = localStorage.getItem(`classroom_scores_${this.currentClass}`);
                 return saved ? JSON.parse(saved) : {};
             }
 
             loadScoreHistory() {
-                const saved = localStorage.getItem('classroom_score_history');
+                const saved = localStorage.getItem(`classroom_score_history_${this.currentClass}`);
                 return saved ? JSON.parse(saved) : {};
             }
 
             saveData() {
-                localStorage.setItem('classroom_students', JSON.stringify(this.students));
-                localStorage.setItem(`classroom_seats_${this.currentMode}`, JSON.stringify(this.getCurrentSeats()));
-                localStorage.setItem('classroom_scores', JSON.stringify(this.scores));
-                localStorage.setItem('classroom_score_history', JSON.stringify(this.scoreHistory));
+                localStorage.setItem('classroom_classes', JSON.stringify(this.classes));
+                localStorage.setItem('classroom_current_class', this.currentClass);
+                localStorage.setItem(`classroom_students_${this.currentClass}`, JSON.stringify(this.students));
+                localStorage.setItem(`classroom_seats_${this.currentMode}_${this.currentClass}`, JSON.stringify(this.getCurrentSeats()));
+                localStorage.setItem(`classroom_scores_${this.currentClass}`, JSON.stringify(this.scores));
+                localStorage.setItem(`classroom_score_history_${this.currentClass}`, JSON.stringify(this.scoreHistory));
             }
 
             getCurrentSeats() {
@@ -378,6 +480,9 @@
             }
 
             initializeEventListeners() {
+                // 班級選擇器
+                document.getElementById('classSelector').addEventListener('click', () => this.toggleClassDropdown());
+                
                 // 模式切換
                 document.getElementById('normalMode').addEventListener('click', () => this.switchMode('normal'));
                 document.getElementById('groupMode').addEventListener('click', () => this.switchMode('group'));
@@ -388,6 +493,7 @@
                 document.getElementById('editStudents').addEventListener('click', () => this.showEditModal());
                 document.getElementById('resetSeats').addEventListener('click', () => this.resetSeats());
                 document.getElementById('showScores').addEventListener('click', () => this.showScoresModal());
+                document.getElementById('manageClasses').addEventListener('click', () => this.showClassModal());
 
                 // 抽籤按鈕
                 document.getElementById('drawAll').addEventListener('click', () => this.startLottery('all'));
@@ -413,6 +519,12 @@
                 // 積分歷史模態框
                 document.getElementById('closeHistory').addEventListener('click', () => this.hideHistoryModal());
 
+                // 班級管理模態框
+                document.getElementById('closeClassModal').addEventListener('click', () => this.hideClassModal());
+                document.getElementById('addNewClass').addEventListener('click', () => this.showClassEditModal());
+                document.getElementById('saveClass').addEventListener('click', () => this.saveClass());
+                document.getElementById('cancelClassEdit').addEventListener('click', () => this.hideClassEditModal());
+
                 // 批量設定模態框
                 document.getElementById('batchSetup').addEventListener('click', () => this.showBatchModal());
                 document.getElementById('confirmBatch').addEventListener('click', () => this.confirmBatchSetup());
@@ -433,6 +545,19 @@
                 });
                 document.getElementById('batchModal').addEventListener('click', (e) => {
                     if (e.target.id === 'batchModal') this.hideBatchModal();
+                });
+                document.getElementById('classModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'classModal') this.hideClassModal();
+                });
+                document.getElementById('classEditModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'classEditModal') this.hideClassEditModal();
+                });
+
+                // 點擊其他地方關閉下拉選單
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#classSelector') && !e.target.closest('#classDropdown')) {
+                        this.hideClassDropdown();
+                    }
                 });
             }
 
@@ -507,15 +632,15 @@
                     buttonDiv.className = 'flex gap-1 mt-2';
                     
                     const historyBtn = document.createElement('button');
-                    historyBtn.className = 'px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors';
-                    historyBtn.textContent = '歷史';
+                    historyBtn.className = 'px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors';
+                    historyBtn.textContent = '獎懲紀錄';
                     historyBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.showHistoryModal(student);
                     });
                     
                     const editBtn = document.createElement('button');
-                    editBtn.className = 'px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors';
+                    editBtn.className = 'px-3 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors';
                     editBtn.textContent = '編輯';
                     editBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -574,14 +699,14 @@
                 // 創建5排座位，每排2-2-2的排列
                 rows.forEach(row => {
                     const rowDiv = document.createElement('div');
-                    rowDiv.className = 'flex justify-between items-center px-8 mb-3';
+                    rowDiv.className = 'flex justify-between items-center px-2 sm:px-4 lg:px-8 mb-2 sm:mb-3';
                     
                     // 決定座位順序（學生視角時左右也顛倒）
                     const seatOrder = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
                     
                     // 左邊2個座位
                     const leftGroup = document.createElement('div');
-                    leftGroup.className = 'flex gap-4';
+                    leftGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
                     
                     for (let i = 0; i < 2; i++) {
                         const col = seatOrder[i];
@@ -592,7 +717,7 @@
                     
                     // 中間2個座位
                     const middleGroup = document.createElement('div');
-                    middleGroup.className = 'flex gap-4';
+                    middleGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
                     
                     for (let i = 2; i < 4; i++) {
                         const col = seatOrder[i];
@@ -603,7 +728,7 @@
                     
                     // 右邊2個座位
                     const rightGroup = document.createElement('div');
-                    rightGroup.className = 'flex gap-4';
+                    rightGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
                     
                     for (let i = 4; i < 6; i++) {
                         const col = seatOrder[i];
@@ -621,7 +746,7 @@
 
             createSeatElement(position, seats) {
                 const seatDiv = document.createElement('div');
-                seatDiv.className = 'seat w-32 h-16 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center text-sm cursor-pointer hover:border-blue-400 transition-colors';
+                seatDiv.className = 'seat w-20 h-12 sm:w-24 sm:h-14 lg:w-32 lg:h-16 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center text-xs sm:text-sm cursor-pointer hover:border-blue-400 transition-colors';
                 seatDiv.dataset.position = position;
 
                 const studentId = seats[position];
@@ -643,8 +768,8 @@
                             '<span class="inline-block w-2 h-2 bg-blue-500 rounded-full ml-1"></span>' : 
                             '<span class="inline-block w-2 h-2 bg-red-500 rounded-full ml-1"></span>';
                         seatDiv.innerHTML = `
-                            <div class="font-semibold text-lg">${student.seatNumber}</div>
-                            <div class="text-sm truncate w-full text-center px-1 flex items-center justify-center">${student.name}${genderDot}</div>
+                            <div class="font-semibold text-sm sm:text-base lg:text-lg">${student.seatNumber}</div>
+                            <div class="text-xs sm:text-sm truncate w-full text-center px-1 flex items-center justify-center">${student.name}${genderDot}</div>
                         `;
                         seatDiv.addEventListener('click', () => {
                             if (!this.isLotteryRunning) {
@@ -669,7 +794,7 @@
                 
                 // 創建教室風格的小組座位區域
                 const groupsContainer = document.createElement('div');
-                groupsContainer.className = 'grid grid-cols-3 gap-6 h-full';
+                groupsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 h-full';
                 
                 // 決定小組順序（學生視角時顛倒）
                 const groupOrder = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
@@ -696,7 +821,7 @@
                     
                     // 中排2個座位
                     const middleRow = document.createElement('div');
-                    middleRow.className = 'flex gap-3 mb-3';
+                    middleRow.className = 'flex gap-1 sm:gap-2 lg:gap-3 mb-2 sm:mb-3';
                     
                     for (let seat = 1; seat < 3; seat++) {
                         const position = group * 5 + seat;
@@ -706,7 +831,7 @@
                     
                     // 下排2個座位
                     const bottomRow = document.createElement('div');
-                    bottomRow.className = 'flex gap-3';
+                    bottomRow.className = 'flex gap-1 sm:gap-2 lg:gap-3';
                     
                     for (let seat = 3; seat < 5; seat++) {
                         const position = group * 5 + seat;
@@ -736,7 +861,7 @@
                 // 創建6排座位，每排5個座位
                 rows.forEach(row => {
                     const rowDiv = document.createElement('div');
-                    rowDiv.className = 'flex justify-between items-center px-12 mb-3';
+                    rowDiv.className = 'flex justify-between items-center px-1 sm:px-4 lg:px-12 mb-2 sm:mb-3';
                     
                     // 決定座位順序（學生視角時左右也顛倒）
                     const seatOrder = this.isStudentView ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4];
@@ -1232,6 +1357,278 @@
                 document.getElementById('clearSelection').classList.add('hidden');
             }
 
+            // 班級管理相關方法
+            renderClassSelector() {
+                const currentClass = this.classes.find(c => c.id === this.currentClass);
+                document.getElementById('currentClassName').textContent = currentClass ? currentClass.name : '101';
+                this.renderClassDropdown();
+            }
+
+            renderClassDropdown() {
+                const dropdown = document.getElementById('classDropdown');
+                dropdown.innerHTML = '';
+
+                this.classes.forEach(classItem => {
+                    const div = document.createElement('div');
+                    div.className = `px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between ${
+                        classItem.id === this.currentClass ? 'bg-blue-50 text-blue-600' : ''
+                    }`;
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = classItem.name;
+                    
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'flex gap-1';
+                    
+                    if (classItem.id === this.currentClass) {
+                        const currentBadge = document.createElement('span');
+                        currentBadge.className = 'text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded';
+                        currentBadge.textContent = '目前';
+                        actionsDiv.appendChild(currentBadge);
+                    }
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'text-xs text-gray-500 hover:text-gray-700 px-1';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.editClass(classItem);
+                    });
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'text-xs text-red-500 hover:text-red-700 px-1';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.deleteClass(classItem);
+                    });
+                    
+                    actionsDiv.appendChild(editBtn);
+                    if (this.classes.length > 1) { // 至少保留一個班級
+                        actionsDiv.appendChild(deleteBtn);
+                    }
+                    
+                    div.appendChild(nameSpan);
+                    div.appendChild(actionsDiv);
+                    
+                    div.addEventListener('click', () => {
+                        if (classItem.id !== this.currentClass) {
+                            this.switchClass(classItem.id);
+                        }
+                        this.hideClassDropdown();
+                    });
+                    
+                    dropdown.appendChild(div);
+                });
+            }
+
+            toggleClassDropdown() {
+                const dropdown = document.getElementById('classDropdown');
+                dropdown.classList.toggle('hidden');
+            }
+
+            hideClassDropdown() {
+                document.getElementById('classDropdown').classList.add('hidden');
+            }
+
+            switchClass(classId) {
+                // 保存當前班級資料
+                this.saveData();
+                
+                // 切換到新班級
+                this.currentClass = classId;
+                
+                // 重新載入新班級的資料
+                this.students = this.loadStudents();
+                this.normalSeats = this.loadSeats('normal');
+                this.groupSeats = this.loadSeats('group');
+                this.examSeats = this.loadSeats('exam');
+                this.scores = this.loadScores();
+                this.scoreHistory = this.loadScoreHistory();
+                this.selectedStudent = null;
+                
+                // 更新顯示
+                this.renderClassSelector();
+                this.renderStudentList();
+                this.renderSeats();
+                
+                // 保存新的當前班級
+                this.saveData();
+            }
+
+            showClassModal() {
+                this.renderClassManageList();
+                const modal = document.getElementById('classModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            hideClassModal() {
+                document.getElementById('classModal').classList.add('hidden');
+                document.getElementById('classModal').classList.remove('flex');
+            }
+
+            renderClassManageList() {
+                const container = document.getElementById('classManageList');
+                container.innerHTML = '';
+
+                this.classes.forEach(classItem => {
+                    const div = document.createElement('div');
+                    div.className = `flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
+                        classItem.id === this.currentClass ? 'border-2 border-blue-400' : 'border border-gray-200'
+                    }`;
+                    
+                    const leftDiv = document.createElement('div');
+                    leftDiv.className = 'flex items-center gap-3';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'font-medium';
+                    nameSpan.textContent = classItem.name;
+                    
+                    if (classItem.id === this.currentClass) {
+                        const badge = document.createElement('span');
+                        badge.className = 'text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded';
+                        badge.textContent = '目前班級';
+                        leftDiv.appendChild(nameSpan);
+                        leftDiv.appendChild(badge);
+                    } else {
+                        leftDiv.appendChild(nameSpan);
+                    }
+                    
+                    const rightDiv = document.createElement('div');
+                    rightDiv.className = 'flex gap-2';
+                    
+                    if (classItem.id !== this.currentClass) {
+                        const switchBtn = document.createElement('button');
+                        switchBtn.className = 'px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors';
+                        switchBtn.textContent = '切換';
+                        switchBtn.addEventListener('click', () => {
+                            this.switchClass(classItem.id);
+                            this.hideClassModal();
+                        });
+                        rightDiv.appendChild(switchBtn);
+                    }
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors';
+                    editBtn.textContent = '編輯';
+                    editBtn.addEventListener('click', () => {
+                        this.editClass(classItem);
+                    });
+                    rightDiv.appendChild(editBtn);
+                    
+                    if (this.classes.length > 1) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors';
+                        deleteBtn.textContent = '刪除';
+                        deleteBtn.addEventListener('click', () => {
+                            this.deleteClass(classItem);
+                        });
+                        rightDiv.appendChild(deleteBtn);
+                    }
+                    
+                    div.appendChild(leftDiv);
+                    div.appendChild(rightDiv);
+                    container.appendChild(div);
+                });
+            }
+
+            showClassEditModal(classItem = null) {
+                this.editingClass = classItem;
+                const modal = document.getElementById('classEditModal');
+                const title = document.getElementById('classEditTitle');
+                const input = document.getElementById('classNameInput');
+                
+                if (classItem) {
+                    title.textContent = '編輯班級';
+                    input.value = classItem.name;
+                } else {
+                    title.textContent = '新增班級';
+                    input.value = '';
+                }
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                input.focus();
+            }
+
+            hideClassEditModal() {
+                document.getElementById('classEditModal').classList.add('hidden');
+                document.getElementById('classEditModal').classList.remove('flex');
+                this.editingClass = null;
+            }
+
+            editClass(classItem) {
+                this.hideClassModal();
+                this.showClassEditModal(classItem);
+            }
+
+            saveClass() {
+                const name = document.getElementById('classNameInput').value.trim();
+                if (!name) {
+                    alert('請輸入班級名稱');
+                    return;
+                }
+
+                if (this.editingClass) {
+                    // 編輯現有班級
+                    this.editingClass.name = name;
+                } else {
+                    // 新增班級
+                    const newId = 'class_' + Date.now();
+                    this.classes.push({
+                        id: newId,
+                        name: name
+                    });
+                }
+
+                this.saveData();
+                this.renderClassSelector();
+                this.hideClassEditModal();
+                
+                if (!this.editingClass) {
+                    // 如果是新增班級，詢問是否切換
+                    if (confirm(`班級「${name}」已建立！是否立即切換到此班級？`)) {
+                        const newClass = this.classes[this.classes.length - 1];
+                        this.switchClass(newClass.id);
+                    }
+                }
+            }
+
+            deleteClass(classItem) {
+                if (this.classes.length <= 1) {
+                    alert('至少需要保留一個班級！');
+                    return;
+                }
+
+                if (!confirm(`確定要刪除班級「${classItem.name}」嗎？\n\n⚠️ 警告：這將永久刪除該班級的所有資料，包括學生資料、座位安排和積分記錄！`)) {
+                    return;
+                }
+
+                // 如果刪除的是當前班級，切換到第一個其他班級
+                if (classItem.id === this.currentClass) {
+                    const otherClass = this.classes.find(c => c.id !== classItem.id);
+                    if (otherClass) {
+                        this.switchClass(otherClass.id);
+                    }
+                }
+
+                // 刪除班級資料
+                this.classes = this.classes.filter(c => c.id !== classItem.id);
+                
+                // 清除該班級的所有本地存儲資料
+                localStorage.removeItem(`classroom_students_${classItem.id}`);
+                localStorage.removeItem(`classroom_seats_normal_${classItem.id}`);
+                localStorage.removeItem(`classroom_seats_group_${classItem.id}`);
+                localStorage.removeItem(`classroom_seats_exam_${classItem.id}`);
+                localStorage.removeItem(`classroom_scores_${classItem.id}`);
+                localStorage.removeItem(`classroom_score_history_${classItem.id}`);
+
+                this.saveData();
+                this.renderClassSelector();
+                this.renderClassManageList();
+            }
+
             // 批量設定相關方法
             showBatchModal() {
                 const modal = document.getElementById('batchModal');
@@ -1317,5 +1714,4 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-</body>
 </html>
