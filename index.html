@@ -29,7 +29,7 @@
             
             .student-list {
                 width: 100% !important;
-                max-height: 300px;
+                max-height: 400px;
                 overflow-y: auto;
             }
             
@@ -39,15 +39,23 @@
             }
             
             .seat {
-                width: 80px !important;
-                height: 60px !important;
-                font-size: 0.75rem !important;
+                width: 85px !important;
+                height: 65px !important;
+                font-size: 0.8rem !important;
+                margin: 2px !important;
             }
             
             .student-item {
-                width: 60px !important;
-                height: 48px !important;
-                font-size: 0.7rem !important;
+                width: 70px !important;
+                height: 55px !important;
+                font-size: 0.75rem !important;
+                margin: 1px !important;
+            }
+            
+            /* 平板專用學生名單樣式 */
+            .student-list-item {
+                min-height: 60px !important;
+                padding: 8px !important;
             }
         }
         
@@ -153,18 +161,37 @@
             overflow-y: auto;
         }
         .dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
+            opacity: 0.7;
+            transform: rotate(5deg) scale(1.1);
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
         }
         .drop-zone {
             border: 2px dashed #3b82f6;
             background-color: rgba(59, 130, 246, 0.1);
+            transform: scale(1.05);
+            transition: all 0.2s ease;
         }
         .seat {
             transition: all 0.3s ease;
         }
         .seat:hover {
             transform: scale(1.05);
+        }
+        .touch-dragging {
+            opacity: 0.8;
+            transform: scale(1.15) rotate(3deg);
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s ease;
+            border: 3px solid #3b82f6;
+        }
+        .touch-drop-target {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 2px dashed #3b82f6;
+            transform: scale(1.1);
+            transition: all 0.2s ease;
         }
         .score-popup {
             animation: scoreUp 1s ease-out;
@@ -1073,7 +1100,7 @@
                         
                         if (student) {
                             // 有學生的座位
-                            div.className = 'w-16 h-12 lg:w-18 lg:h-14 border-2 border-gray-400 rounded-lg cursor-move hover:border-blue-400 transition-colors bg-gray-50 hover:bg-gray-100 flex flex-col items-center justify-center text-xs';
+                            div.className = 'student-list-item w-16 h-12 md:w-18 md:h-14 lg:w-20 lg:h-16 border-2 border-gray-400 rounded-lg cursor-move hover:border-blue-400 transition-colors bg-gray-50 hover:bg-gray-100 flex flex-col items-center justify-center text-xs p-1';
                             div.draggable = true;
                             div.dataset.studentId = student.id;
                             
@@ -1099,14 +1126,26 @@
                                 div.classList.remove('dragging');
                             });
                             
-                            // 雙擊事件開啟學生設定
+                            // 雙擊事件開啟學生設定（支援觸控）
+                            let touchTime = 0;
                             div.addEventListener('dblclick', () => {
                                 this.showStudentSettingsModal(student);
                             });
                             
+                            // 觸控雙擊支援
+                            div.addEventListener('touchend', (e) => {
+                                const currentTime = new Date().getTime();
+                                const tapLength = currentTime - touchTime;
+                                if (tapLength < 500 && tapLength > 0) {
+                                    e.preventDefault();
+                                    this.showStudentSettingsModal(student);
+                                }
+                                touchTime = currentTime;
+                            });
+                            
                         } else {
                             // 空座位
-                            div.className = 'w-16 h-12 lg:w-18 lg:h-14 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors flex flex-col items-center justify-center text-xs text-gray-400';
+                            div.className = 'student-list-item w-16 h-12 md:w-18 md:h-14 lg:w-20 lg:h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors flex flex-col items-center justify-center text-xs text-gray-400 p-1';
                             div.innerHTML = `
                                 <div class="font-bold">${i}</div>
                                 <div class="text-xs">空</div>
@@ -1228,10 +1267,24 @@
                             </div>
                             ${homeworkCount > 0 ? `<div class="text-xs text-yellow-600" title="未交作業：${homeworkCount}項">${homeworkStars}${homeworkCount > 5 ? '+' : ''}</div>` : ''}
                         `;
+                        // 雙擊事件（支援觸控）
+                        let seatTouchTime = 0;
                         seatDiv.addEventListener('dblclick', () => {
                             if (!this.isLotteryRunning) {
                                 this.showStudentSettingsModal(student);
                             }
+                        });
+                        
+                        // 觸控雙擊支援
+                        seatDiv.addEventListener('touchend', (e) => {
+                            if (this.isLotteryRunning) return;
+                            const currentTime = new Date().getTime();
+                            const tapLength = currentTime - seatTouchTime;
+                            if (tapLength < 500 && tapLength > 0) {
+                                e.preventDefault();
+                                this.showStudentSettingsModal(student);
+                            }
+                            seatTouchTime = currentTime;
                         });
                     }
                 } else {
@@ -3110,11 +3163,11 @@
                 const studentList = document.getElementById('studentList');
                 if (studentList) {
                     if (width <= 480) {
-                        studentList.className = 'grid grid-cols-4 gap-2';
+                        studentList.className = 'grid grid-cols-4 gap-3 p-2';
                     } else if (width <= 768) {
-                        studentList.className = 'grid grid-cols-6 gap-2';
+                        studentList.className = 'grid grid-cols-5 gap-3 p-2';
                     } else if (width <= 1024) {
-                        studentList.className = 'grid grid-cols-5 gap-3';
+                        studentList.className = 'grid grid-cols-6 gap-3 p-2';
                     } else {
                         studentList.className = 'grid grid-cols-5 gap-3';
                     }
@@ -3130,17 +3183,33 @@
                 let touchStartX, touchStartY;
                 let isDragging = false;
                 let dragElement = null;
+                let currentDropTarget = null;
+                let dragStartTime = 0;
                 
                 document.addEventListener('touchstart', (e) => {
                     const touch = e.touches[0];
                     touchStartX = touch.clientX;
                     touchStartY = touch.clientY;
+                    dragStartTime = Date.now();
                     
                     // 檢查是否點擊在可拖拽元素上
                     const element = document.elementFromPoint(touch.clientX, touch.clientY);
                     if (element && (element.draggable || element.closest('[draggable="true"]'))) {
                         dragElement = element.closest('[draggable="true"]') || element;
-                        isDragging = true;
+                        
+                        // 延遲啟動拖拽，避免與點擊衝突
+                        setTimeout(() => {
+                            if (dragElement && !isDragging) {
+                                isDragging = true;
+                                dragElement.classList.add('touch-dragging');
+                                
+                                // 添加觸覺回饋
+                                if (navigator.vibrate) {
+                                    navigator.vibrate(50);
+                                }
+                            }
+                        }, 150);
+                        
                         e.preventDefault();
                     }
                 }, { passive: false });
@@ -3150,9 +3219,36 @@
                         e.preventDefault();
                         const touch = e.touches[0];
                         
-                        // 視覺化拖拽效果
-                        dragElement.style.opacity = '0.7';
-                        dragElement.style.transform = 'scale(1.1)';
+                        // 檢查移動距離，確認是拖拽而非點擊
+                        const moveDistance = Math.sqrt(
+                            Math.pow(touch.clientX - touchStartX, 2) + 
+                            Math.pow(touch.clientY - touchStartY, 2)
+                        );
+                        
+                        if (moveDistance > 10) {
+                            // 找到當前觸控點下的元素
+                            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const dropTarget = elementBelow?.closest('[data-position]') || 
+                                             (elementBelow?.dataset?.position !== undefined ? elementBelow : null);
+                            
+                            // 清除之前的放置目標高亮
+                            if (currentDropTarget && currentDropTarget !== dropTarget) {
+                                currentDropTarget.classList.remove('touch-drop-target');
+                            }
+                            
+                            // 高亮新的放置目標
+                            if (dropTarget && dropTarget !== dragElement) {
+                                dropTarget.classList.add('touch-drop-target');
+                                currentDropTarget = dropTarget;
+                                
+                                // 觸覺回饋
+                                if (navigator.vibrate) {
+                                    navigator.vibrate(20);
+                                }
+                            } else {
+                                currentDropTarget = null;
+                            }
+                        }
                     }
                 }, { passive: false });
                 
@@ -3162,16 +3258,35 @@
                         const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
                         
                         // 恢復元素樣式
-                        dragElement.style.opacity = '';
-                        dragElement.style.transform = '';
+                        dragElement.classList.remove('touch-dragging');
                         
-                        // 處理放置邏輯
-                        if (dropTarget && dropTarget !== dragElement) {
-                            this.handleTouchDrop(dragElement, dropTarget);
+                        // 清除所有放置目標高亮
+                        document.querySelectorAll('.touch-drop-target').forEach(el => {
+                            el.classList.remove('touch-drop-target');
+                        });
+                        
+                        // 檢查是否為有效拖拽（時間和距離）
+                        const dragDuration = Date.now() - dragStartTime;
+                        const moveDistance = Math.sqrt(
+                            Math.pow(touch.clientX - touchStartX, 2) + 
+                            Math.pow(touch.clientY - touchStartY, 2)
+                        );
+                        
+                        if (dragDuration > 200 && moveDistance > 20) {
+                            // 處理放置邏輯
+                            if (dropTarget && dropTarget !== dragElement) {
+                                this.handleTouchDrop(dragElement, dropTarget);
+                                
+                                // 成功放置的觸覺回饋
+                                if (navigator.vibrate) {
+                                    navigator.vibrate([50, 50, 50]);
+                                }
+                            }
                         }
                         
                         isDragging = false;
                         dragElement = null;
+                        currentDropTarget = null;
                     }
                 });
             }
@@ -3293,5 +3408,5 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6bd24d03cf20d',t:'MTc2MDEwNTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6c77337a2f20d',t:'MTc2MDEwNjI0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
