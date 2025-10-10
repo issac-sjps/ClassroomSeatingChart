@@ -52,9 +52,21 @@
                 margin: 1px !important;
             }
             
-            /* 平板專用學生名單樣式 */
+            /* 平板專用學生名單樣式 - 格子縮小一半 */
             .student-list-item {
-                min-height: 60px !important;
+                width: 32px !important;
+                height: 24px !important;
+                min-height: 24px !important;
+                padding: 2px !important;
+                font-size: 0.6rem !important;
+                margin: 1px !important;
+                border-width: 1px !important;
+            }
+            
+            /* 平板上學生名單容器調整 */
+            #studentList {
+                grid-template-columns: repeat(10, 1fr) !important;
+                gap: 2px !important;
                 padding: 8px !important;
             }
         }
@@ -3408,5 +3420,5 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6c77337a2f20d',t:'MTc2MDEwNjI0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6d299d621f20d',t:'MTc2MDEwNjcwMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
