@@ -114,6 +114,11 @@
                     <div class="h-8 w-px bg-gray-300 mx-2"></div>
                     
                     <!-- 抽籤功能區塊 -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-600">抽</span>
+                        <input id="lotteryCount" type="number" min="1" max="10" value="1" class="w-12 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="text-sm text-gray-600">人</span>
+                    </div>
                     <button id="lotteryAll" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
                         全部抽籤
                     </button>
@@ -162,6 +167,9 @@
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3">
                         <h3 class="text-lg font-semibold text-gray-800">教室座位圖</h3>
+                        <button id="randomSeating" class="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors">
+                            隨機入座
+                        </button>
                         <button id="resetSeats" class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors">
                             重置座位
                         </button>
@@ -535,12 +543,15 @@
             </div>
             
             <!-- 功能按鈕 -->
-            <div class="flex gap-2 mb-4">
-                <button id="settingsViewHistory" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button id="settingsViewHistory" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
                     查看獎懲紀錄
                 </button>
-                <button id="settingsEditStudent" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                <button id="settingsEditStudent" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">
                     編輯學生資料
+                </button>
+                <button id="settingsManageHomework" class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm">
+                    作業管理
                 </button>
             </div>
             
@@ -549,6 +560,42 @@
                     確認積分調整
                 </button>
                 <button id="closeStudentSettings" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 作業管理模態框 -->
+    <div id="homeworkModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">作業管理</h3>
+            <div class="text-center mb-4">
+                <span id="homeworkStudentName" class="text-xl font-bold text-gray-800"></span>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">未交作業清單</label>
+                <div id="homeworkList" class="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50">
+                    <!-- 作業清單將在這裡顯示 -->
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">新增未交作業</label>
+                <div class="flex gap-2">
+                    <input id="newHomeworkName" type="text" placeholder="作業名稱（例如：數學習作p.25）" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <button id="addHomework" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
+                        新增
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="saveHomeworkNotes" class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                    儲存
+                </button>
+                <button id="closeHomework" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
                     關閉
                 </button>
             </div>
@@ -595,12 +642,14 @@
                 this.scoreHistory = this.loadScoreHistory();
                 this.groupScores = this.loadGroupScores();
                 this.groupScoreHistory = this.loadGroupScoreHistory();
+                this.homeworkNotes = this.loadHomeworkNotes();
                 this.editingStudent = null;
                 this.currentScoreStudent = null;
                 this.isStudentView = false;
                 this.selectedScoreType = null;
                 this.isLotteryRunning = false;
                 this.selectedStudent = null;
+                this.selectedStudents = [];
                 
                 // 計時器相關變數
                 this.timerInterval = null;
@@ -671,6 +720,11 @@
                 return saved ? JSON.parse(saved) : {};
             }
 
+            loadHomeworkNotes() {
+                const saved = localStorage.getItem('classroom_homework_notes');
+                return saved ? JSON.parse(saved) : {};
+            }
+
             saveData() {
                 localStorage.setItem('classroom_students', JSON.stringify(this.students));
                 localStorage.setItem(`classroom_seats_${this.currentMode}`, JSON.stringify(this.getCurrentSeats()));
@@ -678,6 +732,7 @@
                 localStorage.setItem('classroom_score_history', JSON.stringify(this.scoreHistory));
                 localStorage.setItem('classroom_group_scores', JSON.stringify(this.groupScores));
                 localStorage.setItem('classroom_group_score_history', JSON.stringify(this.groupScoreHistory));
+                localStorage.setItem('classroom_homework_notes', JSON.stringify(this.homeworkNotes));
             }
 
             getCurrentSeats() {
@@ -699,6 +754,7 @@
                 document.getElementById('editStudents').addEventListener('click', () => this.showEditModal());
                 document.getElementById('exportStudents').addEventListener('click', () => this.exportStudentsToExcel());
                 document.getElementById('importStudents').addEventListener('click', () => this.importStudentsFromExcel());
+                document.getElementById('randomSeating').addEventListener('click', () => this.randomSeating());
                 document.getElementById('resetSeats').addEventListener('click', () => this.resetSeats());
                 document.getElementById('showScores').addEventListener('click', () => this.showScoresModal());
                 document.getElementById('showGroupScores').addEventListener('click', () => this.showGroupScoresModal());
@@ -727,6 +783,7 @@
                 document.getElementById('settingsConfirmScore').addEventListener('click', () => this.confirmSettingsScore());
                 document.getElementById('settingsViewHistory').addEventListener('click', () => this.viewHistoryFromSettings());
                 document.getElementById('settingsEditStudent').addEventListener('click', () => this.editStudentFromSettings());
+                document.getElementById('settingsManageHomework').addEventListener('click', () => this.showHomeworkModal());
                 document.getElementById('closeStudentSettings').addEventListener('click', () => this.hideStudentSettingsModal());
 
                 // 計時器功能
@@ -758,6 +815,11 @@
                 document.getElementById('confirmImport').addEventListener('click', () => this.confirmImportStudents());
                 document.getElementById('cancelImport').addEventListener('click', () => this.hideImportModal());
 
+                // 作業管理功能
+                document.getElementById('addHomework').addEventListener('click', () => this.addHomework());
+                document.getElementById('saveHomeworkNotes').addEventListener('click', () => this.saveHomeworkNotes());
+                document.getElementById('closeHomework').addEventListener('click', () => this.hideHomeworkModal());
+
                 // 點擊模態框外部關閉
                 document.getElementById('editModal').addEventListener('click', (e) => {
                     if (e.target.id === 'editModal') this.hideEditModal();
@@ -788,6 +850,9 @@
                 });
                 document.getElementById('importModal').addEventListener('click', (e) => {
                     if (e.target.id === 'importModal') this.hideImportModal();
+                });
+                document.getElementById('homeworkModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'homeworkModal') this.hideHomeworkModal();
                 });
             }
 
@@ -1002,11 +1067,17 @@
                             '<span class="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1"></span>';
                         const displayName = student.name.length > 3 ? student.name.substring(0, 3) : student.name;
                         
+                        // 計算未交作業數量，最多顯示5個星星
+                        const homeworkCount = this.getHomeworkCount(student.id);
+                        const displayStars = Math.min(homeworkCount, 5);
+                        const homeworkStars = '⭐'.repeat(displayStars);
+                        
                         seatDiv.innerHTML = `
                             <div class="font-semibold text-xs lg:text-sm flex items-center justify-center">${student.seatNumber}${genderDot}</div>
                             <div class="text-xs lg:text-sm">
                                 ${displayName}
                             </div>
+                            ${homeworkCount > 0 ? `<div class="text-xs text-yellow-600" title="未交作業：${homeworkCount}項">${homeworkStars}${homeworkCount > 5 ? '+' : ''}</div>` : ''}
                         `;
                         seatDiv.addEventListener('dblclick', () => {
                             if (!this.isLotteryRunning) {
@@ -1158,11 +1229,17 @@
                     '<span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>' : 
                     '<span class="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1"></span>';
                 
+                // 計算未交作業數量，最多顯示5個星星
+                const homeworkCount = this.getHomeworkCount(student.id);
+                const displayStars = Math.min(homeworkCount, 5);
+                const homeworkStars = '⭐'.repeat(displayStars);
+                
                 seatDiv.innerHTML = `
                     <div class="font-semibold text-xs">${student.seatNumber}</div>
                     <div class="truncate w-full text-center px-1 text-xs flex items-center justify-center">
                         ${student.name}${genderDot}
                     </div>
+                    ${homeworkCount > 0 ? `<div class="text-xs text-yellow-600" title="未交作業：${homeworkCount}項">${homeworkStars}${homeworkCount > 5 ? '+' : ''}</div>` : ''}
                 `;
                 
                 // 雙擊事件
@@ -1549,6 +1626,68 @@
                 }
             }
 
+            randomSeating() {
+                if (confirm('確定要將所有學生隨機安排座位嗎？這會清除目前的座位安排。')) {
+                    const seats = this.getCurrentSeats();
+                    
+                    // 清空當前座位安排
+                    Object.keys(seats).forEach(position => {
+                        delete seats[position];
+                    });
+                    
+                    // 獲取所有可用座位位置
+                    let availablePositions = [];
+                    
+                    if (this.currentMode === 'normal') {
+                        // 一般座位：30個位置 (5排 x 6列)
+                        for (let i = 0; i < 30; i++) {
+                            availablePositions.push(i);
+                        }
+                    } else if (this.currentMode === 'group') {
+                        // 小組座位：30個位置 (6組 x 5個座位)
+                        for (let i = 0; i < 30; i++) {
+                            availablePositions.push(i);
+                        }
+                    } else if (this.currentMode === 'exam') {
+                        // 考試座位：36個位置 (6排 x 6列)
+                        for (let i = 0; i < 36; i++) {
+                            availablePositions.push(i);
+                        }
+                    } else {
+                        // 自由座位模式不適用隨機入座
+                        alert('自由座位模式不支援隨機入座功能');
+                        return;
+                    }
+                    
+                    // 洗牌算法打亂座位順序
+                    for (let i = availablePositions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [availablePositions[i], availablePositions[j]] = [availablePositions[j], availablePositions[i]];
+                    }
+                    
+                    // 將學生隨機分配到座位
+                    const studentsToAssign = [...this.students]; // 複製學生陣列
+                    
+                    // 也打亂學生順序
+                    for (let i = studentsToAssign.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [studentsToAssign[i], studentsToAssign[j]] = [studentsToAssign[j], studentsToAssign[i]];
+                    }
+                    
+                    // 分配座位
+                    studentsToAssign.forEach((student, index) => {
+                        if (index < availablePositions.length) {
+                            seats[availablePositions[index]] = student.id;
+                        }
+                    });
+                    
+                    this.saveData();
+                    this.renderSeats();
+                    
+                    alert(`隨機入座完成！已為 ${Math.min(studentsToAssign.length, availablePositions.length)} 位學生安排座位。`);
+                }
+            }
+
             resetSeats() {
                 if (confirm('確定要重置當前模式的座位安排嗎？')) {
                     if (this.currentMode === 'normal') {
@@ -1665,10 +1804,17 @@
                 
                 // 獲取符合條件的學生
                 const eligibleStudents = this.getEligibleStudents(type);
+                const lotteryCount = parseInt(document.getElementById('lotteryCount').value) || 1;
                 
                 if (eligibleStudents.length === 0) {
                     const typeText = type === 'all' ? '所有' : (type === 'male' ? '男' : '女');
                     alert(`沒有${typeText}學生在座位上，無法進行抽籤！`);
+                    return;
+                }
+                
+                if (lotteryCount > eligibleStudents.length) {
+                    const typeText = type === 'all' ? '所有' : (type === 'male' ? '男' : '女');
+                    alert(`${typeText}學生只有${eligibleStudents.length}人，無法抽取${lotteryCount}人！`);
                     return;
                 }
                 
@@ -1680,7 +1826,7 @@
                 
                 // 3秒後選出結果
                 setTimeout(() => {
-                    this.selectWinner(eligibleStudents);
+                    this.selectWinners(eligibleStudents, lotteryCount);
                 }, 3000);
             }
 
@@ -1731,7 +1877,7 @@
                 });
             }
 
-            selectWinner(eligibleStudents) {
+            selectWinners(eligibleStudents, count) {
                 // 停止所有閃爍動畫計時器
                 if (this.flashIntervals) {
                     this.flashIntervals.forEach(interval => clearInterval(interval));
@@ -1746,18 +1892,28 @@
                     }
                 });
                 
-                // 隨機選擇獲勝者
-                const winner = eligibleStudents[Math.floor(Math.random() * eligibleStudents.length)];
-                this.selectedStudent = winner;
-                
-                // 標記獲勝者
-                const winnerSeat = document.querySelector(`[data-position="${winner.position}"]`);
-                if (winnerSeat) {
-                    winnerSeat.classList.add('lottery-selected');
+                // 使用洗牌算法隨機選擇多個獲勝者
+                const shuffled = [...eligibleStudents];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                 }
                 
+                const winners = shuffled.slice(0, count);
+                this.selectedStudents = winners;
+                
+                // 標記所有獲勝者
+                const seatNumbers = [];
+                winners.forEach(winner => {
+                    const winnerSeat = document.querySelector(`[data-position="${winner.position}"]`);
+                    if (winnerSeat) {
+                        winnerSeat.classList.add('lottery-selected');
+                    }
+                    seatNumbers.push(winner.student.seatNumber);
+                });
+                
                 // 語音播報結果
-                this.speakLotteryResult(winner.student.seatNumber);
+                this.speakLotteryResults(seatNumbers);
                 
                 // 顯示取消標記按鈕
                 document.getElementById('clearSelection').classList.remove('hidden');
@@ -1773,12 +1929,15 @@
                     this.flashIntervals = [];
                 }
                 
-                if (this.selectedStudent) {
-                    const seatElement = document.querySelector(`[data-position="${this.selectedStudent.position}"]`);
-                    if (seatElement) {
-                        seatElement.classList.remove('lottery-selected');
-                    }
-                    this.selectedStudent = null;
+                // 清除所有選中的學生
+                if (this.selectedStudents && this.selectedStudents.length > 0) {
+                    this.selectedStudents.forEach(selectedStudent => {
+                        const seatElement = document.querySelector(`[data-position="${selectedStudent.position}"]`);
+                        if (seatElement) {
+                            seatElement.classList.remove('lottery-selected');
+                        }
+                    });
+                    this.selectedStudents = [];
                 }
                 
                 // 隱藏取消標記按鈕
@@ -1808,6 +1967,38 @@
                 document.getElementById('lotteryAll').classList.remove('opacity-50', 'cursor-not-allowed');
                 document.getElementById('lotteryBoys').classList.remove('opacity-50', 'cursor-not-allowed');
                 document.getElementById('lotteryGirls').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            speakLotteryResults(seatNumbers) {
+                // 使用瀏覽器的語音合成API播報抽籤結果
+                if ('speechSynthesis' in window) {
+                    let message;
+                    if (seatNumbers.length === 1) {
+                        message = `恭喜${seatNumbers[0]}號`;
+                    } else {
+                        const numbersText = seatNumbers.join('號、') + '號';
+                        message = `恭喜${numbersText}`;
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.lang = 'zh-TW'; // 設定為繁體中文
+                    utterance.rate = 0.9; // 稍微慢一點的語速
+                    utterance.pitch = 1.1; // 稍微高一點的音調
+                    utterance.volume = 0.8; // 音量
+                    
+                    // 嘗試使用Google的語音（如果可用）
+                    const voices = speechSynthesis.getVoices();
+                    const googleVoice = voices.find(voice => 
+                        voice.name.includes('Google') && voice.lang.includes('zh')
+                    );
+                    if (googleVoice) {
+                        utterance.voice = googleVoice;
+                    }
+                    
+                    speechSynthesis.speak(utterance);
+                } else {
+                    console.log('瀏覽器不支援語音合成功能');
+                }
             }
 
 
@@ -2146,29 +2337,7 @@
                 }
             }
 
-            speakLotteryResult(seatNumber) {
-                // 使用瀏覽器的語音合成API念出抽籤結果
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(`恭喜${seatNumber}號`);
-                    utterance.lang = 'zh-TW'; // 設定為繁體中文
-                    utterance.rate = 0.9; // 稍微慢一點的語速
-                    utterance.pitch = 1.2; // 稍微高一點的音調，表示恭喜
-                    utterance.volume = 0.9; // 音量
-                    
-                    // 嘗試使用Google的語音（如果可用）
-                    const voices = speechSynthesis.getVoices();
-                    const googleVoice = voices.find(voice => 
-                        voice.name.includes('Google') && voice.lang.includes('zh')
-                    );
-                    if (googleVoice) {
-                        utterance.voice = googleVoice;
-                    }
-                    
-                    speechSynthesis.speak(utterance);
-                } else {
-                    console.log('瀏覽器不支援語音合成功能');
-                }
-            }
+
 
             showTimeUpModal() {
                 const modal = document.getElementById('timeUpModal');
@@ -2356,6 +2525,144 @@
                 const scoreAmount = parseInt(document.getElementById('groupScoreAmount').value) || 1;
                 document.getElementById('addGroupScoreText').textContent = `+${scoreAmount}`;
                 document.getElementById('subtractGroupScoreText').textContent = `-${scoreAmount}`;
+            }
+
+            // 作業管理相關方法
+            getHomeworkCount(studentId) {
+                const homeworkList = this.homeworkNotes[studentId] || [];
+                return homeworkList.length;
+            }
+
+            showHomeworkModal() {
+                if (!this.currentSettingsStudent) return;
+                
+                const student = this.currentSettingsStudent;
+                const modal = document.getElementById('homeworkModal');
+                const studentName = document.getElementById('homeworkStudentName');
+                const newHomeworkInput = document.getElementById('newHomeworkName');
+                
+                studentName.textContent = `${student.seatNumber}號 ${student.name}`;
+                newHomeworkInput.value = '';
+                
+                this.renderHomeworkList();
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            hideHomeworkModal() {
+                document.getElementById('homeworkModal').classList.add('hidden');
+                document.getElementById('homeworkModal').classList.remove('flex');
+            }
+
+            renderHomeworkList() {
+                if (!this.currentSettingsStudent) return;
+                
+                const studentId = this.currentSettingsStudent.id;
+                const container = document.getElementById('homeworkList');
+                const homeworkList = this.homeworkNotes[studentId] || [];
+                
+                container.innerHTML = '';
+                
+                if (homeworkList.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-2">目前沒有未交作業</div>';
+                    return;
+                }
+                
+                homeworkList.forEach((homework, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-2 bg-white rounded border';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="text-yellow-600">⭐</span>
+                            <span class="text-sm">${homework.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">${homework.date}</span>
+                            <button class="remove-homework px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600" data-index="${index}">
+                                已交
+                            </button>
+                        </div>
+                    `;
+                    
+                    // 添加移除按鈕事件
+                    const removeBtn = div.querySelector('.remove-homework');
+                    removeBtn.addEventListener('click', () => {
+                        this.removeHomework(index);
+                    });
+                    
+                    container.appendChild(div);
+                });
+            }
+
+            addHomework() {
+                if (!this.currentSettingsStudent) return;
+                
+                const input = document.getElementById('newHomeworkName');
+                const homeworkName = input.value.trim();
+                
+                if (!homeworkName) {
+                    alert('請輸入作業名稱');
+                    return;
+                }
+                
+                const studentId = this.currentSettingsStudent.id;
+                
+                if (!this.homeworkNotes[studentId]) {
+                    this.homeworkNotes[studentId] = [];
+                }
+                
+                // 檢查是否已存在相同作業
+                const exists = this.homeworkNotes[studentId].some(hw => hw.name === homeworkName);
+                if (exists) {
+                    alert('此作業已在未交清單中');
+                    return;
+                }
+                
+                this.homeworkNotes[studentId].push({
+                    name: homeworkName,
+                    date: new Date().toLocaleDateString('zh-TW')
+                });
+                
+                input.value = '';
+                this.renderHomeworkList();
+            }
+
+            removeHomework(index) {
+                if (!this.currentSettingsStudent) return;
+                
+                const studentId = this.currentSettingsStudent.id;
+                const homeworkList = this.homeworkNotes[studentId] || [];
+                
+                if (index >= 0 && index < homeworkList.length) {
+                    const homeworkName = homeworkList[index].name;
+                    homeworkList.splice(index, 1);
+                    
+                    // 如果清單為空，刪除整個記錄
+                    if (homeworkList.length === 0) {
+                        delete this.homeworkNotes[studentId];
+                    }
+                    
+                    this.renderHomeworkList();
+                    
+                    // 顯示確認訊息
+                    alert(`已標記「${homeworkName}」為已交作業`);
+                }
+            }
+
+            saveHomeworkNotes() {
+                this.saveData();
+                this.renderSeats(); // 更新座位顯示的星星
+                this.hideHomeworkModal();
+                
+                const student = this.currentSettingsStudent;
+                const homeworkCount = this.getHomeworkCount(student.id);
+                
+                if (homeworkCount > 0) {
+                    alert(`${student.name}目前有${homeworkCount}項未交作業`);
+                } else {
+                    alert(`${student.name}目前沒有未交作業`);
+                }
             }
 
             // 匯出學生資料到Excel
@@ -2705,5 +3012,5 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c67614a44ef20d',t:'MTc2MDEwMjkxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6a2e9d7a6f20d',t:'MTc2MDEwNDc0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
