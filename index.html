@@ -282,14 +282,14 @@
         <!-- 主要內容區域 -->
         <div class="main-content flex gap-6 w-full flex-1">
             <!-- 學生名單 - 1/4寬度 -->
-            <div class="student-list w-1/4 bg-white rounded-lg shadow-lg p-4 flex-shrink-0">
+            <div class="student-list w-1/4 bg-white rounded-lg shadow-lg p-4 flex-shrink-0 flex flex-col">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">學生名單</h3>
                     <div class="flex gap-2">
                         <button id="exportStudents" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors">
                             匯出Excel
                         </button>
-                        <button id="importStudents" class="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors">
+                        <button id="importStudents" class="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors" title="匯入Excel需要用匯出Excel的格式才能匯入成功">
                             匯入Excel
                         </button>
                         <button id="editStudents" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors">
@@ -297,7 +297,10 @@
                         </button>
                     </div>
                 </div>
-                <div id="studentList">
+                <div class="text-xs text-gray-500 mb-4">
+                    💡 提示：匯入Excel需要用匯出Excel的格式才能匯入成功
+                </div>
+                <div id="studentList" class="flex-1 overflow-y-auto">
                     <!-- 學生列表將在這裡動態生成 -->
                 </div>
                 <!-- 隱藏的檔案輸入元素 -->
@@ -319,6 +322,9 @@
                     <div class="text-sm text-gray-600">
                         <span id="currentMode">一般座位模式</span>
                     </div>
+                </div>
+                <div class="text-xs text-gray-500 mb-4">
+                    💡 提示：請直接按住左邊的學生，用拖曳的方式拉入座位中
                 </div>
                 
                 <!-- 講台（學生視角時在上方） -->
@@ -3287,5 +3293,5 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6ab1d616ef20d',t:'MTc2MDEwNTA4Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6bd24d03cf20d',t:'MTc2MDEwNTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
