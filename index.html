@@ -6,7 +6,8 @@
     <title>教室座位安排系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
+        html, body {
+            height: 100%;
             box-sizing: border-box;
         }
         .dragging {
@@ -31,49 +32,37 @@
             100% { transform: translateY(-30px) scale(1.2); opacity: 0; }
         }
         .lottery-flash {
-            animation: lotteryFlash 0.3s ease-in-out infinite;
+            animation: lotteryFlash 0.3s ease-in-out infinite alternate;
         }
         @keyframes lotteryFlash {
-            0%, 100% { background-color: #fbbf24; border-color: #f59e0b; }
-            50% { background-color: #f97316; border-color: #ea580c; }
+            0% { background-color: #fbbf24; border-color: #f59e0b; }
+            100% { background-color: #fb923c; border-color: #ea580c; }
         }
         .lottery-selected {
             background-color: rgba(239, 68, 68, 0.8) !important;
-            border: 2px solid #ef4444 !important;
+            border-color: #dc2626 !important;
             color: white !important;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.7) !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full">
-    <div class="container mx-auto p-6">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 h-full">
+    <div class="w-full p-4 h-full flex flex-col">
         <!-- 標題 -->
         <div class="text-center mb-8">
-            <div class="flex items-center justify-center gap-4 mb-4">
-                <h1 class="text-4xl font-bold text-gray-800">教室座位安排系統</h1>
-                <div class="flex items-center gap-2">
-                    <div class="relative">
-                        <button id="classSelector" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-lg">
-                            <span id="currentClassName">101</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        <div id="classDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden max-h-64 overflow-y-auto">
-                            <!-- 班級列表將在這裡動態生成 -->
-                        </div>
-                    </div>
-                    <button id="manageClasses" class="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-sm">
-                        班級管理
-                    </button>
-                </div>
-            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">教室座位安排系統</h1>
             <p class="text-gray-600">編輯學生資料、安排座位、管理獎勵積分</p>
         </div>
 
         <!-- 控制面板 -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
             <div class="flex flex-wrap gap-4 items-center justify-between">
+                <!-- 模式選擇 -->
                 <div class="flex gap-2">
                     <button id="normalMode" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                         一般座位
@@ -84,84 +73,117 @@
                     <button id="examMode" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
                         考試座位
                     </button>
+                    <button id="freeMode" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        空白座位
+                    </button>
                 </div>
-                <div class="flex gap-2 flex-wrap items-center">
+                
+                <!-- 功能按鈕 -->
+                <div class="flex gap-2 items-center">
                     <button id="studentView" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
                         學生視角
                     </button>
-                    <button id="editStudents" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                        編輯學生
-                    </button>
-                    <button id="resetSeats" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-                        重置座位
-                    </button>
                     <button id="showScores" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
-                        查看積分
+                        個人積分排行榜
                     </button>
+                    <button id="showGroupScores" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                        小組積分排行榜
+                    </button>
+
                     
                     <!-- 分隔線 -->
                     <div class="h-8 w-px bg-gray-300 mx-2"></div>
                     
-                    <!-- 抽籤功能區 -->
-                    <div class="flex gap-1 flex-wrap">
-                        <button id="drawAll" class="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm">
-                            全部抽籤
+                    <!-- 計時器功能區塊 -->
+                    <div class="flex items-center gap-2">
+                        <button id="timerBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                            計時器
                         </button>
-                        <button id="drawMale" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                            男生抽籤
+                        <div id="timerDisplay" class="text-lg font-mono font-bold text-gray-700 min-w-20 text-center hidden">
+                            00:00
+                        </div>
+                        <button id="pauseTimer" class="px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors hidden">
+                            暫停
                         </button>
-                        <button id="drawFemale" class="px-3 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors text-sm">
-                            女生抽籤
-                        </button>
-                        <button id="clearSelection" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm hidden">
-                            取消標記
+                        <button id="stopTimer" class="px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors hidden">
+                            停止
                         </button>
                     </div>
+                    
+                    <!-- 分隔線 -->
+                    <div class="h-8 w-px bg-gray-300 mx-2"></div>
+                    
+                    <!-- 抽籤功能區塊 -->
+                    <button id="lotteryAll" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                        全部抽籤
+                    </button>
+                    <button id="lotteryBoys" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        男生抽籤
+                    </button>
+                    <button id="lotteryGirls" class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+                        女生抽籤
+                    </button>
+                    <button id="clearSelection" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors hidden">
+                        取消標記
+                    </button>
+                    
+
                 </div>
             </div>
         </div>
 
         <!-- 主要內容區域 -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- 學生名單 -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-lg p-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">學生名單</h3>
-                        <button id="batchSetup" class="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-sm">
-                            批量設定
+        <div class="flex gap-6 w-full flex-1">
+            <!-- 學生名單 - 1/4寬度 -->
+            <div class="w-1/4 bg-white rounded-lg shadow-lg p-4 flex-shrink-0">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">學生名單</h3>
+                    <div class="flex gap-2">
+                        <button id="exportStudents" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors">
+                            匯出Excel
+                        </button>
+                        <button id="importStudents" class="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors">
+                            匯入Excel
+                        </button>
+                        <button id="editStudents" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors">
+                            編輯學生
                         </button>
                     </div>
-                    <div id="studentList" class="space-y-2 max-h-[28rem] overflow-y-auto">
-                        <!-- 學生列表將在這裡動態生成 -->
-                    </div>
                 </div>
+                <div id="studentList">
+                    <!-- 學生列表將在這裡動態生成 -->
+                </div>
+                <!-- 隱藏的檔案輸入元素 -->
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
             </div>
 
-            <!-- 教室座位區域 -->
-            <div class="lg:col-span-3">
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex justify-between items-center mb-4">
+            <!-- 教室座位區域 - 3/4寬度 -->
+            <div class="flex-1 bg-white rounded-lg shadow-lg p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3">
                         <h3 class="text-lg font-semibold text-gray-800">教室座位圖</h3>
-                        <div class="text-sm text-gray-600">
-                            <span id="currentMode">一般座位模式</span>
-                        </div>
+                        <button id="resetSeats" class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors">
+                            重置座位
+                        </button>
                     </div>
-                    
-                    <!-- 講台（學生視角時在上方） -->
-                    <div id="podiumTop" class="bg-gray-800 text-white text-center py-3 rounded-lg mb-6 hidden">
-                        <span class="text-lg font-semibold">講台</span>
+                    <div class="text-sm text-gray-600">
+                        <span id="currentMode">一般座位模式</span>
                     </div>
+                </div>
+                
+                <!-- 講台（學生視角時在上方） -->
+                <div id="podiumTop" class="bg-gray-800 text-white text-center py-3 rounded-lg mb-6 hidden">
+                    <span class="text-lg font-semibold">講台</span>
+                </div>
 
-                    <!-- 座位區域 -->
-                    <div id="seatingArea" class="min-h-96 border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6">
-                        <!-- 座位將在這裡動態生成 -->
-                    </div>
+                <!-- 座位區域 -->
+                <div id="seatingArea" class="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6 flex-1">
+                    <!-- 座位將在這裡動態生成 -->
+                </div>
 
-                    <!-- 講台（老師視角時在下方） -->
-                    <div id="podiumBottom" class="bg-gray-800 text-white text-center py-3 rounded-lg">
-                        <span class="text-lg font-semibold">講台</span>
-                    </div>
+                <!-- 講台（老師視角時在下方） -->
+                <div id="podiumBottom" class="bg-gray-800 text-white text-center py-3 rounded-lg">
+                    <span class="text-lg font-semibold">講台</span>
                 </div>
             </div>
         </div>
@@ -183,8 +205,8 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">性別</label>
                     <select id="editStudentGender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="male">男生 👦</option>
-                        <option value="female">女生 👧</option>
+                        <option value="male">男生 🔵</option>
+                        <option value="female">女生 🔴</option>
                     </select>
                 </div>
                 <div class="flex gap-2">
@@ -210,13 +232,28 @@
                 <span id="scoreStudentName" class="text-xl font-bold text-gray-800"></span>
             </div>
             <div class="space-y-4">
-                <div class="flex gap-2 justify-center">
-                    <button id="addScoreBtn" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg font-semibold">
-                        +1 加分
-                    </button>
-                    <button id="subtractScoreBtn" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 text-lg font-semibold">
-                        -1 扣分
-                    </button>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">調整分數</label>
+                        <div class="flex items-center gap-2 justify-center">
+                            <input id="scoreAmount" type="number" min="1" max="10" value="1" class="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span class="text-gray-600">分</span>
+                        </div>
+                        <div class="flex gap-1 justify-center mt-2">
+                            <button type="button" class="quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="1">1分</button>
+                            <button type="button" class="quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="2">2分</button>
+                            <button type="button" class="quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="3">3分</button>
+                            <button type="button" class="quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="5">5分</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 justify-center">
+                        <button id="addScoreBtn" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg font-semibold">
+                            <span id="addScoreText">+1</span> 加分
+                        </button>
+                        <button id="subtractScoreBtn" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 text-lg font-semibold">
+                            <span id="subtractScoreText">-1</span> 扣分
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">原因說明</label>
@@ -257,7 +294,7 @@
     <!-- 積分查看模態框 -->
     <div id="scoresModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
-            <h3 class="text-lg font-semibold mb-4">學生積分排行</h3>
+            <h3 class="text-lg font-semibold mb-4">個人積分排行榜</h3>
             <div id="scoresList" class="space-y-2 max-h-96 overflow-y-auto">
                 <!-- 積分列表將在這裡顯示 -->
             </div>
@@ -291,50 +328,55 @@
         </div>
     </div>
 
-    <!-- 班級管理模態框 -->
-    <div id="classModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
-            <h3 class="text-lg font-semibold mb-4">班級管理</h3>
+    <!-- 計時器設定模態框 -->
+    <div id="timerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">設定倒數計時器</h3>
             <div class="space-y-4">
-                <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="text-sm font-medium text-gray-700">班級列表</label>
-                        <button id="addNewClass" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors">
-                            + 新增班級
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">小時</label>
+                        <input id="timerHours" type="number" min="0" max="23" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分鐘</label>
+                        <input id="timerMinutes" type="number" min="0" max="59" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">秒數</label>
+                        <input id="timerSeconds" type="number" min="0" max="59" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">快速設定</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="1">
+                            1分鐘
+                        </button>
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="5">
+                            5分鐘
+                        </button>
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="10">
+                            10分鐘
+                        </button>
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="15">
+                            15分鐘
+                        </button>
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="30">
+                            30分鐘
+                        </button>
+                        <button type="button" class="quick-time-btn px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors border border-blue-300" data-minutes="45">
+                            45分鐘
                         </button>
                     </div>
-                    <div id="classManageList" class="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                        <!-- 班級管理列表將在這裡顯示 -->
-                    </div>
                 </div>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div class="text-sm text-blue-800">
-                        <strong>提示：</strong>每個班級的資料都是獨立保存的，切換班級不會影響其他班級的資料。
-                    </div>
-                </div>
+                
                 <div class="flex gap-2">
-                    <button id="closeClassModal" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
-                        關閉
+                    <button id="startTimer" class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                        開始計時
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 新增/編輯班級模態框 -->
-    <div id="classEditModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 id="classEditTitle" class="text-lg font-semibold mb-4">新增班級</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">班級名稱</label>
-                    <input id="classNameInput" type="text" placeholder="例如：106" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex gap-2">
-                    <button id="saveClass" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                        保存
-                    </button>
-                    <button id="cancelClassEdit" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    <button id="cancelTimer" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
                         取消
                     </button>
                 </div>
@@ -342,46 +384,200 @@
         </div>
     </div>
 
-    <!-- 批量設定模態框 -->
-    <div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <!-- 時間到提醒模態框 -->
+    <div id="timeUpModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 w-full max-w-md mx-4 text-center animate-pulse">
+            <div class="text-6xl mb-4">⏰</div>
+            <h3 class="text-2xl font-bold text-red-600 mb-4">時間到囉！</h3>
+            <div class="text-lg text-gray-700 mb-6">計時器已結束</div>
+            <button id="closeTimeUp" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 text-lg font-semibold">
+                確認
+            </button>
+        </div>
+    </div>
+
+    <!-- 小組積分模態框 -->
+    <div id="groupScoresModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-semibold mb-4">小組積分排行榜</h3>
+            <div id="groupScoresList" class="space-y-2 max-h-96 overflow-y-auto">
+                <!-- 小組積分列表將在這裡顯示 -->
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button id="resetGroupScores" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                    重置小組積分
+                </button>
+                <button id="closeGroupScores" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 小組積分調整模態框 -->
+    <div id="groupScoreModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 class="text-lg font-semibold mb-4">批量設定學生</h3>
+            <h3 class="text-lg font-semibold mb-4">調整小組積分</h3>
+            <div class="text-center mb-4">
+                <span id="groupScoreGroupName" class="text-xl font-bold text-gray-800"></span>
+            </div>
             <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">總學生數量</label>
-                    <input id="totalStudents" type="number" min="1" max="50" value="40" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">男生座號範圍</label>
-                    <div class="flex gap-2 items-center">
-                        <input id="maleStart" type="number" min="1" value="1" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="text-gray-500">到</span>
-                        <input id="maleEnd" type="number" min="1" value="20" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="text-sm text-gray-600">號</span>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">調整分數</label>
+                        <div class="flex items-center gap-2 justify-center">
+                            <input id="groupScoreAmount" type="number" min="1" max="10" value="1" class="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span class="text-gray-600">分</span>
+                        </div>
+                        <div class="flex gap-1 justify-center mt-2">
+                            <button type="button" class="group-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="1">1分</button>
+                            <button type="button" class="group-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="2">2分</button>
+                            <button type="button" class="group-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="3">3分</button>
+                            <button type="button" class="group-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="5">5分</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 justify-center">
+                        <button id="addGroupScoreBtn" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg font-semibold">
+                            <span id="addGroupScoreText">+1</span> 加分
+                        </button>
+                        <button id="subtractGroupScoreBtn" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 text-lg font-semibold">
+                            <span id="subtractGroupScoreText">-1</span> 扣分
+                        </button>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">女生座號範圍</label>
-                    <div class="flex gap-2 items-center">
-                        <input id="femaleStart" type="number" min="1" value="21" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="text-gray-500">到</span>
-                        <input id="femaleEnd" type="number" min="1" value="40" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="text-sm text-gray-600">號</span>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">原因說明</label>
+                    <div class="mb-3">
+                        <div class="text-xs text-gray-600 mb-2">快速選擇：</div>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button type="button" class="group-reason-btn px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors border border-green-300">
+                                討論積極
+                            </button>
+                            <button type="button" class="group-reason-btn px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors border border-green-300">
+                                合作良好
+                            </button>
+                            <button type="button" class="group-reason-btn px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors border border-red-300">
+                                討論吵鬧
+                            </button>
+                            <button type="button" class="group-reason-btn px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors border border-red-300">
+                                不參與討論
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div class="text-sm text-yellow-800">
-                        <strong>注意：</strong>此操作會重置所有學生資料、座位安排和積分記錄！
-                    </div>
+                    <textarea id="groupScoreReason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows="3" placeholder="請輸入加減分原因..."></textarea>
                 </div>
                 <div class="flex gap-2">
-                    <button id="confirmBatch" class="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600">
-                        確認設定
+                    <button id="confirmGroupScore" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        確認
                     </button>
-                    <button id="cancelBatch" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    <button id="cancelGroupScore" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
                         取消
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 學生設定模態框 -->
+    <div id="studentSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">學生設定</h3>
+            <div class="text-center mb-4">
+                <span id="settingsStudentName" class="text-xl font-bold text-gray-800"></span>
+                <span id="settingsStudentScore" class="ml-2 text-lg text-blue-600 font-semibold"></span>
+            </div>
+            
+            <!-- 加減分區域 -->
+            <div class="mb-6">
+                <h4 class="text-md font-semibold mb-3 text-gray-700">調整積分</h4>
+                <div class="space-y-3 mb-3">
+                    <div>
+                        <div class="flex items-center gap-2 justify-center mb-2">
+                            <input id="settingsScoreAmount" type="number" min="1" max="10" value="1" class="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span class="text-gray-600 text-sm">分</span>
+                        </div>
+                        <div class="flex gap-1 justify-center mb-3">
+                            <button type="button" class="settings-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="1">1分</button>
+                            <button type="button" class="settings-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="2">2分</button>
+                            <button type="button" class="settings-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="3">3分</button>
+                            <button type="button" class="settings-quick-score-btn px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors border border-blue-300" data-score="5">5分</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 justify-center">
+                        <button id="settingsAddScore" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold">
+                            <span id="settingsAddScoreText">+1</span> 加分
+                        </button>
+                        <button id="settingsSubtractScore" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold">
+                            <span id="settingsSubtractScoreText">-1</span> 扣分
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">原因說明</label>
+                    <div class="mb-2">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button type="button" class="settings-reason-btn px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors border border-green-300">
+                                回答問題
+                            </button>
+                            <button type="button" class="settings-reason-btn px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors border border-green-300">
+                                幫老師忙
+                            </button>
+                            <button type="button" class="settings-reason-btn px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors border border-red-300">
+                                上課聊天
+                            </button>
+                            <button type="button" class="settings-reason-btn px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors border border-red-300">
+                                作業沒寫
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="settingsScoreReason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows="2" placeholder="請輸入加減分原因..."></textarea>
+                </div>
+            </div>
+            
+            <!-- 功能按鈕 -->
+            <div class="flex gap-2 mb-4">
+                <button id="settingsViewHistory" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    查看獎懲紀錄
+                </button>
+                <button id="settingsEditStudent" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                    編輯學生資料
+                </button>
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="settingsConfirmScore" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    確認積分調整
+                </button>
+                <button id="closeStudentSettings" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 匯入確認模態框 -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
+            <h3 class="text-lg font-semibold mb-4">確認匯入學生資料</h3>
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">預覽匯入的學生資料：</p>
+                <div id="importPreview" class="border border-gray-300 rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
+                    <!-- 預覽內容將在這裡顯示 -->
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="replaceAllStudents" class="mr-2">
+                    <span class="text-sm">替換所有現有學生資料（不勾選則為新增模式）</span>
+                </label>
+            </div>
+            <div class="flex gap-2">
+                <button id="confirmImport" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    確認匯入
+                </button>
+                <button id="cancelImport" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    取消
+                </button>
             </div>
         </div>
     </div>
@@ -389,117 +585,123 @@
     <script>
         class ClassroomManager {
             constructor() {
-                this.classes = this.loadClasses();
-                this.currentClass = this.loadCurrentClass();
                 this.students = this.loadStudents();
-                this.currentMode = 'normal'; // 'normal', 'group', or 'exam'
+                this.currentMode = 'normal'; // 'normal', 'group', 'exam', or 'free'
                 this.normalSeats = this.loadSeats('normal');
                 this.groupSeats = this.loadSeats('group');
                 this.examSeats = this.loadSeats('exam');
+                this.freeSeats = this.loadSeats('free');
                 this.scores = this.loadScores();
                 this.scoreHistory = this.loadScoreHistory();
+                this.groupScores = this.loadGroupScores();
+                this.groupScoreHistory = this.loadGroupScoreHistory();
                 this.editingStudent = null;
                 this.currentScoreStudent = null;
                 this.isStudentView = false;
-                this.selectedStudent = null; // 抽籤選中的學生
-                this.isLotteryRunning = false; // 抽籤動畫進行中
-                this.editingClass = null; // 正在編輯的班級
+                this.selectedScoreType = null;
+                this.isLotteryRunning = false;
+                this.selectedStudent = null;
+                
+                // 計時器相關變數
+                this.timerInterval = null;
+                this.timerRemaining = 0;
+                this.timerRunning = false;
+                this.timerPaused = false;
                 
                 this.initializeEventListeners();
-                this.renderClassSelector();
                 this.renderStudentList();
                 this.renderSeats();
             }
 
-            loadClasses() {
-                const saved = localStorage.getItem('classroom_classes');
-                if (saved) {
-                    return JSON.parse(saved);
-                }
-                // 預設班級
-                return [
-                    { id: 'class_1', name: '101' },
-                    { id: 'class_2', name: '102' },
-                    { id: 'class_3', name: '103' },
-                    { id: 'class_4', name: '104' },
-                    { id: 'class_5', name: '105' }
-                ];
-            }
-
-            loadCurrentClass() {
-                const saved = localStorage.getItem('classroom_current_class');
-                return saved || 'class_1';
-            }
-
             loadStudents() {
-                const saved = localStorage.getItem(`classroom_students_${this.currentClass}`);
+                const saved = localStorage.getItem('classroom_students');
                 if (saved) {
                     return JSON.parse(saved);
                 }
-                // 預設學生資料：40個學生，1-20號男生，21-40號女生
+                // 預設學生資料
                 const defaultStudents = [];
-                for (let i = 1; i <= 40; i++) {
+                
+                // 男生 1-15號
+                for (let i = 1; i <= 15; i++) {
                     defaultStudents.push({
                         id: i,
                         seatNumber: i,
                         name: `學生${i}`,
-                        gender: i <= 20 ? 'male' : 'female' // 1-20號男生，21-40號女生
+                        gender: 'male'
                     });
                 }
+                
+                // 女生 21-35號
+                for (let i = 21; i <= 35; i++) {
+                    defaultStudents.push({
+                        id: i,
+                        seatNumber: i,
+                        name: `學生${i}`,
+                        gender: 'female'
+                    });
+                }
+                
+                // 16-20號和36-40號留空，不預設學生
+                
                 return defaultStudents;
             }
 
             loadSeats(mode) {
-                const saved = localStorage.getItem(`classroom_seats_${mode}_${this.currentClass}`);
+                const saved = localStorage.getItem(`classroom_seats_${mode}`);
                 return saved ? JSON.parse(saved) : {};
             }
 
             loadScores() {
-                const saved = localStorage.getItem(`classroom_scores_${this.currentClass}`);
+                const saved = localStorage.getItem('classroom_scores');
                 return saved ? JSON.parse(saved) : {};
             }
 
             loadScoreHistory() {
-                const saved = localStorage.getItem(`classroom_score_history_${this.currentClass}`);
+                const saved = localStorage.getItem('classroom_score_history');
+                return saved ? JSON.parse(saved) : {};
+            }
+
+            loadGroupScores() {
+                const saved = localStorage.getItem('classroom_group_scores');
+                return saved ? JSON.parse(saved) : {};
+            }
+
+            loadGroupScoreHistory() {
+                const saved = localStorage.getItem('classroom_group_score_history');
                 return saved ? JSON.parse(saved) : {};
             }
 
             saveData() {
-                localStorage.setItem('classroom_classes', JSON.stringify(this.classes));
-                localStorage.setItem('classroom_current_class', this.currentClass);
-                localStorage.setItem(`classroom_students_${this.currentClass}`, JSON.stringify(this.students));
-                localStorage.setItem(`classroom_seats_${this.currentMode}_${this.currentClass}`, JSON.stringify(this.getCurrentSeats()));
-                localStorage.setItem(`classroom_scores_${this.currentClass}`, JSON.stringify(this.scores));
-                localStorage.setItem(`classroom_score_history_${this.currentClass}`, JSON.stringify(this.scoreHistory));
+                localStorage.setItem('classroom_students', JSON.stringify(this.students));
+                localStorage.setItem(`classroom_seats_${this.currentMode}`, JSON.stringify(this.getCurrentSeats()));
+                localStorage.setItem('classroom_scores', JSON.stringify(this.scores));
+                localStorage.setItem('classroom_score_history', JSON.stringify(this.scoreHistory));
+                localStorage.setItem('classroom_group_scores', JSON.stringify(this.groupScores));
+                localStorage.setItem('classroom_group_score_history', JSON.stringify(this.groupScoreHistory));
             }
 
             getCurrentSeats() {
                 if (this.currentMode === 'normal') return this.normalSeats;
                 if (this.currentMode === 'group') return this.groupSeats;
-                return this.examSeats;
+                if (this.currentMode === 'exam') return this.examSeats;
+                return this.freeSeats;
             }
 
             initializeEventListeners() {
-                // 班級選擇器
-                document.getElementById('classSelector').addEventListener('click', () => this.toggleClassDropdown());
-                
                 // 模式切換
                 document.getElementById('normalMode').addEventListener('click', () => this.switchMode('normal'));
                 document.getElementById('groupMode').addEventListener('click', () => this.switchMode('group'));
                 document.getElementById('examMode').addEventListener('click', () => this.switchMode('exam'));
+                document.getElementById('freeMode').addEventListener('click', () => this.switchMode('free'));
 
                 // 控制按鈕
                 document.getElementById('studentView').addEventListener('click', () => this.toggleStudentView());
                 document.getElementById('editStudents').addEventListener('click', () => this.showEditModal());
+                document.getElementById('exportStudents').addEventListener('click', () => this.exportStudentsToExcel());
+                document.getElementById('importStudents').addEventListener('click', () => this.importStudentsFromExcel());
                 document.getElementById('resetSeats').addEventListener('click', () => this.resetSeats());
                 document.getElementById('showScores').addEventListener('click', () => this.showScoresModal());
-                document.getElementById('manageClasses').addEventListener('click', () => this.showClassModal());
-
-                // 抽籤按鈕
-                document.getElementById('drawAll').addEventListener('click', () => this.startLottery('all'));
-                document.getElementById('drawMale').addEventListener('click', () => this.startLottery('male'));
-                document.getElementById('drawFemale').addEventListener('click', () => this.startLottery('female'));
-                document.getElementById('clearSelection').addEventListener('click', () => this.clearSelection());
+                document.getElementById('showGroupScores').addEventListener('click', () => this.showGroupScoresModal());
 
                 // 編輯模態框
                 document.getElementById('saveStudent').addEventListener('click', () => this.saveStudent());
@@ -519,16 +721,42 @@
                 // 積分歷史模態框
                 document.getElementById('closeHistory').addEventListener('click', () => this.hideHistoryModal());
 
-                // 班級管理模態框
-                document.getElementById('closeClassModal').addEventListener('click', () => this.hideClassModal());
-                document.getElementById('addNewClass').addEventListener('click', () => this.showClassEditModal());
-                document.getElementById('saveClass').addEventListener('click', () => this.saveClass());
-                document.getElementById('cancelClassEdit').addEventListener('click', () => this.hideClassEditModal());
+                // 學生設定模態框
+                document.getElementById('settingsAddScore').addEventListener('click', () => this.selectSettingsScoreType(1));
+                document.getElementById('settingsSubtractScore').addEventListener('click', () => this.selectSettingsScoreType(-1));
+                document.getElementById('settingsConfirmScore').addEventListener('click', () => this.confirmSettingsScore());
+                document.getElementById('settingsViewHistory').addEventListener('click', () => this.viewHistoryFromSettings());
+                document.getElementById('settingsEditStudent').addEventListener('click', () => this.editStudentFromSettings());
+                document.getElementById('closeStudentSettings').addEventListener('click', () => this.hideStudentSettingsModal());
 
-                // 批量設定模態框
-                document.getElementById('batchSetup').addEventListener('click', () => this.showBatchModal());
-                document.getElementById('confirmBatch').addEventListener('click', () => this.confirmBatchSetup());
-                document.getElementById('cancelBatch').addEventListener('click', () => this.hideBatchModal());
+                // 計時器功能
+                document.getElementById('timerBtn').addEventListener('click', () => this.showTimerModal());
+                document.getElementById('startTimer').addEventListener('click', () => this.startCountdownTimer());
+                document.getElementById('cancelTimer').addEventListener('click', () => this.hideTimerModal());
+                document.getElementById('pauseTimer').addEventListener('click', () => this.pauseTimer());
+                document.getElementById('stopTimer').addEventListener('click', () => this.stopTimer());
+
+                // 抽籤功能
+                document.getElementById('lotteryAll').addEventListener('click', () => this.startLottery('all'));
+                document.getElementById('lotteryBoys').addEventListener('click', () => this.startLottery('male'));
+                document.getElementById('lotteryGirls').addEventListener('click', () => this.startLottery('female'));
+                document.getElementById('clearSelection').addEventListener('click', () => this.clearSelection());
+
+                // 時間到提醒
+                document.getElementById('closeTimeUp').addEventListener('click', () => this.hideTimeUpModal());
+
+                // 小組積分功能
+                document.getElementById('resetGroupScores').addEventListener('click', () => this.resetAllGroupScores());
+                document.getElementById('closeGroupScores').addEventListener('click', () => this.hideGroupScoresModal());
+                document.getElementById('addGroupScoreBtn').addEventListener('click', () => this.selectGroupScoreType(1));
+                document.getElementById('subtractGroupScoreBtn').addEventListener('click', () => this.selectGroupScoreType(-1));
+                document.getElementById('confirmGroupScore').addEventListener('click', () => this.confirmGroupScore());
+                document.getElementById('cancelGroupScore').addEventListener('click', () => this.hideGroupScoreModal());
+
+                // 匯入功能
+                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileSelect(e));
+                document.getElementById('confirmImport').addEventListener('click', () => this.confirmImportStudents());
+                document.getElementById('cancelImport').addEventListener('click', () => this.hideImportModal());
 
                 // 點擊模態框外部關閉
                 document.getElementById('editModal').addEventListener('click', (e) => {
@@ -543,21 +771,23 @@
                 document.getElementById('historyModal').addEventListener('click', (e) => {
                     if (e.target.id === 'historyModal') this.hideHistoryModal();
                 });
-                document.getElementById('batchModal').addEventListener('click', (e) => {
-                    if (e.target.id === 'batchModal') this.hideBatchModal();
+                document.getElementById('studentSettingsModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'studentSettingsModal') this.hideStudentSettingsModal();
                 });
-                document.getElementById('classModal').addEventListener('click', (e) => {
-                    if (e.target.id === 'classModal') this.hideClassModal();
+                document.getElementById('timerModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'timerModal') this.hideTimerModal();
                 });
-                document.getElementById('classEditModal').addEventListener('click', (e) => {
-                    if (e.target.id === 'classEditModal') this.hideClassEditModal();
+                document.getElementById('timeUpModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'timeUpModal') this.hideTimeUpModal();
                 });
-
-                // 點擊其他地方關閉下拉選單
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('#classSelector') && !e.target.closest('#classDropdown')) {
-                        this.hideClassDropdown();
-                    }
+                document.getElementById('groupScoresModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'groupScoresModal') this.hideGroupScoresModal();
+                });
+                document.getElementById('groupScoreModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'groupScoreModal') this.hideGroupScoreModal();
+                });
+                document.getElementById('importModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'importModal') this.hideImportModal();
                 });
             }
 
@@ -597,11 +827,13 @@
                 document.getElementById('normalMode').className = mode === 'normal' ? activeClass : inactiveClass;
                 document.getElementById('groupMode').className = mode === 'group' ? activeClass : inactiveClass;
                 document.getElementById('examMode').className = mode === 'exam' ? activeClass : inactiveClass;
+                document.getElementById('freeMode').className = mode === 'free' ? activeClass : inactiveClass;
 
                 const modeNames = {
                     'normal': '一般座位模式',
                     'group': '小組座位模式',
-                    'exam': '考試座位模式'
+                    'exam': '考試座位模式',
+                    'free': '空白座位模式'
                 };
                 document.getElementById('currentMode').textContent = modeNames[mode];
                 
@@ -612,66 +844,69 @@
                 const container = document.getElementById('studentList');
                 container.innerHTML = '';
 
-                this.students.forEach(student => {
-                    const div = document.createElement('div');
-                    div.className = 'p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
-                    div.draggable = true;
-                    div.dataset.studentId = student.id;
-                    
-                    const mainDiv = document.createElement('div');
-                    mainDiv.className = 'flex items-center justify-between cursor-move';
-                    const genderDot = student.gender === 'male' ? 
-                        '<span class="inline-block w-3 h-3 bg-blue-500 rounded-full ml-1"></span>' : 
-                        '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-1"></span>';
-                    mainDiv.innerHTML = `
-                        <span class="text-sm flex items-center">${student.seatNumber}號 ${student.name}${genderDot}</span>
-                        <span class="text-xs text-blue-600 font-semibold">${this.scores[student.id] || 0}分</span>
-                    `;
-                    
-                    const buttonDiv = document.createElement('div');
-                    buttonDiv.className = 'flex gap-1 mt-2';
-                    
-                    const historyBtn = document.createElement('button');
-                    historyBtn.className = 'px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors';
-                    historyBtn.textContent = '獎懲紀錄';
-                    historyBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.showHistoryModal(student);
-                    });
-                    
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'px-3 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors';
-                    editBtn.textContent = '編輯';
-                    editBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.editStudent(student);
-                    });
-                    
-                    buttonDiv.appendChild(historyBtn);
-                    buttonDiv.appendChild(editBtn);
-                    
-                    div.appendChild(mainDiv);
-                    div.appendChild(buttonDiv);
-                    
-                    // 拖拽事件
-                    div.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.setData('text/plain', `student:${student.id}`);
-                        div.classList.add('dragging');
-                    });
-                    
-                    div.addEventListener('dragend', (e) => {
-                        div.classList.remove('dragging');
-                    });
-                    
-                    container.appendChild(div);
-                });
+                // 創建網格容器，每行5個，加上間隙
+                container.className = 'grid grid-cols-5 gap-3';
 
-                // 新增學生按鈕
-                const addButton = document.createElement('button');
-                addButton.className = 'w-full p-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors';
-                addButton.textContent = '+ 新增學生';
-                addButton.addEventListener('click', () => this.addNewStudent());
-                container.appendChild(addButton);
+                // 顯示1-40號，但按照原本的排列方式
+                const displayRanges = [
+                    { start: 1, end: 40 }
+                ];
+
+                displayRanges.forEach(range => {
+                    for (let i = range.start; i <= range.end; i++) {
+                        const student = this.students.find(s => s.seatNumber === i);
+                        const div = document.createElement('div');
+                        
+                        if (student) {
+                            // 有學生的座位
+                            div.className = 'w-16 h-12 lg:w-18 lg:h-14 border-2 border-gray-400 rounded-lg cursor-move hover:border-blue-400 transition-colors bg-gray-50 hover:bg-gray-100 flex flex-col items-center justify-center text-xs';
+                            div.draggable = true;
+                            div.dataset.studentId = student.id;
+                            
+                            const genderDot = student.gender === 'male' ? 
+                                '<span class="inline-block w-2 h-2 bg-blue-500 rounded-full ml-1"></span>' : 
+                                '<span class="inline-block w-2 h-2 bg-red-500 rounded-full ml-1"></span>';
+                            const displayName = student.name.length > 3 ? student.name.substring(0, 3) : student.name;
+                            
+                            div.innerHTML = `
+                                <div class="font-bold text-xs lg:text-sm flex items-center">${student.seatNumber}${genderDot}</div>
+                                <div class="text-xs lg:text-sm">
+                                    ${displayName}
+                                </div>
+                            `;
+                            
+                            // 拖拽事件
+                            div.addEventListener('dragstart', (e) => {
+                                e.dataTransfer.setData('text/plain', `student:${student.id}`);
+                                div.classList.add('dragging');
+                            });
+                            
+                            div.addEventListener('dragend', (e) => {
+                                div.classList.remove('dragging');
+                            });
+                            
+                            // 雙擊事件開啟學生設定
+                            div.addEventListener('dblclick', () => {
+                                this.showStudentSettingsModal(student);
+                            });
+                            
+                        } else {
+                            // 空座位
+                            div.className = 'w-16 h-12 lg:w-18 lg:h-14 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors flex flex-col items-center justify-center text-xs text-gray-400';
+                            div.innerHTML = `
+                                <div class="font-bold">${i}</div>
+                                <div class="text-xs">空</div>
+                            `;
+                            
+                            // 點擊空座位新增學生
+                            div.addEventListener('click', () => {
+                                this.showEditModal(null, i);
+                            });
+                        }
+                        
+                        container.appendChild(div);
+                    }
+                });
             }
 
             renderSeats() {
@@ -682,13 +917,15 @@
                     this.renderNormalSeats(container);
                 } else if (this.currentMode === 'group') {
                     this.renderGroupSeats(container);
-                } else {
+                } else if (this.currentMode === 'exam') {
                     this.renderExamSeats(container);
+                } else {
+                    this.renderFreeSeats(container);
                 }
             }
 
             renderNormalSeats(container) {
-                container.className = 'min-h-96 border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6';
+                container.className = 'border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6 flex-1 flex flex-col justify-center';
                 container.innerHTML = '';
                 
                 const seats = this.getCurrentSeats();
@@ -699,14 +936,14 @@
                 // 創建5排座位，每排2-2-2的排列
                 rows.forEach(row => {
                     const rowDiv = document.createElement('div');
-                    rowDiv.className = 'flex justify-between items-center px-2 sm:px-4 lg:px-8 mb-2 sm:mb-3';
+                    rowDiv.className = 'flex justify-between items-center px-8 mb-4';
                     
                     // 決定座位順序（學生視角時左右也顛倒）
                     const seatOrder = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
                     
                     // 左邊2個座位
                     const leftGroup = document.createElement('div');
-                    leftGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
+                    leftGroup.className = 'flex gap-4';
                     
                     for (let i = 0; i < 2; i++) {
                         const col = seatOrder[i];
@@ -717,7 +954,7 @@
                     
                     // 中間2個座位
                     const middleGroup = document.createElement('div');
-                    middleGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
+                    middleGroup.className = 'flex gap-4';
                     
                     for (let i = 2; i < 4; i++) {
                         const col = seatOrder[i];
@@ -728,7 +965,7 @@
                     
                     // 右邊2個座位
                     const rightGroup = document.createElement('div');
-                    rightGroup.className = 'flex gap-1 sm:gap-2 lg:gap-4';
+                    rightGroup.className = 'flex gap-4';
                     
                     for (let i = 4; i < 6; i++) {
                         const col = seatOrder[i];
@@ -746,7 +983,7 @@
 
             createSeatElement(position, seats) {
                 const seatDiv = document.createElement('div');
-                seatDiv.className = 'seat w-20 h-12 sm:w-24 sm:h-14 lg:w-32 lg:h-16 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center text-xs sm:text-sm cursor-pointer hover:border-blue-400 transition-colors';
+                seatDiv.className = 'seat w-24 h-16 lg:w-32 lg:h-20 xl:w-40 xl:h-24 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-colors text-xs lg:text-sm';
                 seatDiv.dataset.position = position;
 
                 const studentId = seats[position];
@@ -756,29 +993,29 @@
                         let bgColor = 'bg-blue-100 border-blue-400';
                         if (this.currentMode === 'group') bgColor = 'bg-green-100 border-green-400';
                         if (this.currentMode === 'exam') bgColor = 'bg-red-100 border-red-400';
+                        if (this.currentMode === 'free') bgColor = 'bg-purple-100 border-purple-400';
                         
-                        // 檢查是否為選中的學生
-                        if (this.selectedStudent && this.selectedStudent.id === student.id) {
-                            seatDiv.className += ' lottery-selected';
-                        } else {
-                            seatDiv.className += ` ${bgColor}`;
-                        }
+                        seatDiv.className += ` ${bgColor}`;
                         
                         const genderDot = student.gender === 'male' ? 
-                            '<span class="inline-block w-2 h-2 bg-blue-500 rounded-full ml-1"></span>' : 
-                            '<span class="inline-block w-2 h-2 bg-red-500 rounded-full ml-1"></span>';
+                            '<span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>' : 
+                            '<span class="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1"></span>';
+                        const displayName = student.name.length > 3 ? student.name.substring(0, 3) : student.name;
+                        
                         seatDiv.innerHTML = `
-                            <div class="font-semibold text-sm sm:text-base lg:text-lg">${student.seatNumber}</div>
-                            <div class="text-xs sm:text-sm truncate w-full text-center px-1 flex items-center justify-center">${student.name}${genderDot}</div>
+                            <div class="font-semibold text-xs lg:text-sm flex items-center justify-center">${student.seatNumber}${genderDot}</div>
+                            <div class="text-xs lg:text-sm">
+                                ${displayName}
+                            </div>
                         `;
-                        seatDiv.addEventListener('click', () => {
+                        seatDiv.addEventListener('dblclick', () => {
                             if (!this.isLotteryRunning) {
-                                this.showScoreModal(student);
+                                this.showStudentSettingsModal(student);
                             }
                         });
                     }
                 } else {
-                    seatDiv.innerHTML = '<div class="text-gray-400">空位</div>';
+                    seatDiv.innerHTML = '<div class="text-gray-400 text-xs lg:text-sm">空位</div>';
                 }
 
                 this.makeDraggable(seatDiv);
@@ -787,61 +1024,60 @@
             }
 
             renderGroupSeats(container) {
-                container.className = 'min-h-96 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6';
+                container.className = 'border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6 flex-1';
                 container.innerHTML = '';
                 
                 const seats = this.getCurrentSeats();
                 
                 // 創建教室風格的小組座位區域
                 const groupsContainer = document.createElement('div');
-                groupsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 h-full';
+                groupsContainer.className = 'grid grid-cols-3 gap-6 h-full flex-1';
                 
                 // 決定小組順序（學生視角時顛倒）
-                const groupOrder = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
+                const groupOrder = this.isStudentView ? [3, 4, 5, 0, 1, 2] : [3, 4, 5, 0, 1, 2];
                 
                 groupOrder.forEach(group => {
                     const groupDiv = document.createElement('div');
                     groupDiv.className = 'border-2 border-dashed border-gray-400 rounded-lg p-4 min-h-52 relative bg-gray-50';
                     
-                    const groupLabel = document.createElement('div');
-                    groupLabel.className = 'absolute -top-3 left-4 bg-white px-3 py-1 text-sm font-semibold text-gray-700 rounded border';
+                    const groupLabel = document.createElement('button');
+                    groupLabel.className = 'absolute -top-3 left-4 bg-white px-3 py-1 text-sm font-semibold text-gray-700 rounded border hover:bg-gray-100 hover:border-blue-400 transition-colors cursor-pointer';
                     groupLabel.textContent = `第${group + 1}組`;
+                    groupLabel.dataset.groupNumber = group + 1;
+                    groupLabel.addEventListener('click', () => {
+                        this.showGroupScoreModal(group + 1);
+                    });
                     groupDiv.appendChild(groupLabel);
                     
                     const groupSeats = document.createElement('div');
                     groupSeats.className = 'flex flex-col items-center justify-center h-full pt-4';
                     
-                    // 上排1個座位（中央）
-                    const topRow = document.createElement('div');
-                    topRow.className = 'flex justify-center mb-3';
+                    // 決定座位排列順序（學生視角時上下顛倒）
+                    const seatRows = this.isStudentView ? [
+                        // 學生視角：下排變上排，上排變下排
+                        [3, 4], // 原本的下排變成上排
+                        [1, 2], // 原本的中排保持中排
+                        [0]     // 原本的上排變成下排
+                    ] : [
+                        // 老師視角：正常排列
+                        [0],    // 上排1個
+                        [1, 2], // 中排2個
+                        [3, 4]  // 下排2個
+                    ];
                     
-                    const position1 = group * 5;
-                    const seatDiv1 = this.createSeatElement(position1, seats);
-                    topRow.appendChild(seatDiv1);
+                    seatRows.forEach((rowSeats, rowIndex) => {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.className = 'flex justify-center gap-3 mb-3';
+                        
+                        rowSeats.forEach(seat => {
+                            const position = group * 5 + seat;
+                            const seatDiv = this.createSeatElement(position, seats);
+                            rowDiv.appendChild(seatDiv);
+                        });
+                        
+                        groupSeats.appendChild(rowDiv);
+                    });
                     
-                    // 中排2個座位
-                    const middleRow = document.createElement('div');
-                    middleRow.className = 'flex gap-1 sm:gap-2 lg:gap-3 mb-2 sm:mb-3';
-                    
-                    for (let seat = 1; seat < 3; seat++) {
-                        const position = group * 5 + seat;
-                        const seatDiv = this.createSeatElement(position, seats);
-                        middleRow.appendChild(seatDiv);
-                    }
-                    
-                    // 下排2個座位
-                    const bottomRow = document.createElement('div');
-                    bottomRow.className = 'flex gap-1 sm:gap-2 lg:gap-3';
-                    
-                    for (let seat = 3; seat < 5; seat++) {
-                        const position = group * 5 + seat;
-                        const seatDiv = this.createSeatElement(position, seats);
-                        bottomRow.appendChild(seatDiv);
-                    }
-                    
-                    groupSeats.appendChild(topRow);
-                    groupSeats.appendChild(middleRow);
-                    groupSeats.appendChild(bottomRow);
                     groupDiv.appendChild(groupSeats);
                     groupsContainer.appendChild(groupDiv);
                 });
@@ -850,7 +1086,7 @@
             }
 
             renderExamSeats(container) {
-                container.className = 'min-h-96 border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6';
+                container.className = 'border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6 flex-1 flex flex-col justify-center';
                 container.innerHTML = '';
                 
                 const seats = this.getCurrentSeats();
@@ -858,22 +1094,166 @@
                 // 決定排列順序（學生視角時顛倒）
                 const rows = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
                 
-                // 創建6排座位，每排5個座位
+                // 創建6排座位，每排6個座位
                 rows.forEach(row => {
                     const rowDiv = document.createElement('div');
-                    rowDiv.className = 'flex justify-between items-center px-1 sm:px-4 lg:px-12 mb-2 sm:mb-3';
+                    rowDiv.className = 'flex justify-between items-center px-8 mb-3';
                     
                     // 決定座位順序（學生視角時左右也顛倒）
-                    const seatOrder = this.isStudentView ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4];
+                    const seatOrder = this.isStudentView ? [5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5];
                     
                     seatOrder.forEach(col => {
-                        const position = row * 5 + col;
+                        const position = row * 6 + col;
                         const seatDiv = this.createSeatElement(position, seats);
                         rowDiv.appendChild(seatDiv);
                     });
                     
                     container.appendChild(rowDiv);
                 });
+            }
+
+            renderFreeSeats(container) {
+                container.className = 'border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6 flex-1 relative bg-gray-50';
+                container.innerHTML = '';
+                
+                // 添加提示文字
+                const hint = document.createElement('div');
+                hint.className = 'absolute top-4 left-4 text-gray-500 text-sm pointer-events-none';
+                hint.textContent = '從左側拖拽學生到此區域創建座位';
+                container.appendChild(hint);
+                
+                const seats = this.getCurrentSeats();
+                
+                // 渲染現有的自由座位
+                Object.keys(seats).forEach(position => {
+                    const studentId = seats[position];
+                    if (studentId) {
+                        const student = this.students.find(s => s.id === studentId);
+                        if (student) {
+                            const seatDiv = this.createFreeSeatElement(position, student);
+                            container.appendChild(seatDiv);
+                        }
+                    }
+                });
+                
+                // 讓整個容器可以接受拖拽
+                this.makeFreeDroppable(container);
+            }
+
+            createFreeSeatElement(position, student) {
+                const seatDiv = document.createElement('div');
+                seatDiv.className = 'absolute w-40 h-24 bg-purple-100 border-2 border-purple-400 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-600 transition-colors text-xs shadow-md';
+                seatDiv.dataset.position = position;
+                seatDiv.draggable = true;
+                
+                // 從position解析座標
+                const coords = position.split(',');
+                const x = parseInt(coords[0]);
+                const y = parseInt(coords[1]);
+                
+                seatDiv.style.left = `${x}px`;
+                seatDiv.style.top = `${y}px`;
+                
+                const genderDot = student.gender === 'male' ? 
+                    '<span class="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>' : 
+                    '<span class="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1"></span>';
+                
+                seatDiv.innerHTML = `
+                    <div class="font-semibold text-xs">${student.seatNumber}</div>
+                    <div class="truncate w-full text-center px-1 text-xs flex items-center justify-center">
+                        ${student.name}${genderDot}
+                    </div>
+                `;
+                
+                // 雙擊事件
+                seatDiv.addEventListener('dblclick', () => {
+                    if (!this.isLotteryRunning) {
+                        this.showScoreModal(student);
+                    }
+                });
+                
+                // 拖拽事件
+                seatDiv.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', `freeseat:${position}`);
+                    seatDiv.classList.add('dragging');
+                });
+                
+                seatDiv.addEventListener('dragend', (e) => {
+                    seatDiv.classList.remove('dragging');
+                });
+                
+                return seatDiv;
+            }
+
+            makeFreeDroppable(container) {
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    container.classList.add('drop-zone');
+                });
+                
+                container.addEventListener('dragleave', (e) => {
+                    if (!container.contains(e.relatedTarget)) {
+                        container.classList.remove('drop-zone');
+                    }
+                });
+                
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    container.classList.remove('drop-zone');
+                    
+                    const dragData = e.dataTransfer.getData('text/plain');
+                    const rect = container.getBoundingClientRect();
+                    const x = e.clientX - rect.left - 80; // 減去座位寬度的一半
+                    const y = e.clientY - rect.top - 48; // 減去座位高度的一半
+                    
+                    // 確保座位不會超出邊界
+                    const maxX = container.clientWidth - 160;
+                    const maxY = container.clientHeight - 96;
+                    const finalX = Math.max(0, Math.min(x, maxX));
+                    const finalY = Math.max(0, Math.min(y, maxY));
+                    
+                    const position = `${finalX},${finalY}`;
+                    
+                    if (dragData.startsWith('student:')) {
+                        // 從學生列表拖拽到自由區域
+                        const studentId = parseInt(dragData.replace('student:', ''));
+                        this.assignStudentToFreeSeat(studentId, position);
+                    } else if (dragData.startsWith('freeseat:')) {
+                        // 移動現有的自由座位
+                        const oldPosition = dragData.replace('freeseat:', '');
+                        this.moveFreeSeats(oldPosition, position);
+                    }
+                });
+            }
+
+            assignStudentToFreeSeat(studentId, position) {
+                const seats = this.getCurrentSeats();
+                
+                // 檢查學生是否已經有座位，如果有就清除原座位
+                Object.keys(seats).forEach(pos => {
+                    if (seats[pos] === studentId) {
+                        delete seats[pos];
+                    }
+                });
+                
+                // 將學生分配到新位置
+                seats[position] = studentId;
+                
+                this.saveData();
+                this.renderSeats();
+            }
+
+            moveFreeSeats(oldPosition, newPosition) {
+                const seats = this.getCurrentSeats();
+                const studentId = seats[oldPosition];
+                
+                if (studentId) {
+                    delete seats[oldPosition];
+                    seats[newPosition] = studentId;
+                    
+                    this.saveData();
+                    this.renderSeats();
+                }
             }
 
             makeDraggable(element) {
@@ -962,6 +1342,21 @@
                     });
                 });
                 
+                // 為快速分數按鈕添加事件監聽器
+                const quickScoreButtons = modal.querySelectorAll('.quick-score-btn');
+                quickScoreButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const score = parseInt(btn.dataset.score);
+                        document.getElementById('scoreAmount').value = score;
+                        this.updateScoreButtonText();
+                    });
+                });
+                
+                // 為分數輸入框添加事件監聽器
+                document.getElementById('scoreAmount').addEventListener('input', () => {
+                    this.updateScoreButtonText();
+                });
+                
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             }
@@ -974,8 +1369,13 @@
             }
 
             selectScoreType(type) {
-                this.selectedScoreType = type;
+                const scoreAmount = parseInt(document.getElementById('scoreAmount').value) || 1;
+                this.selectedScoreType = type * scoreAmount;
                 const reasonInput = document.getElementById('scoreReason');
+                
+                // 更新按鈕文字
+                document.getElementById('addScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('subtractScoreText').textContent = `-${scoreAmount}`;
                 
                 // 設定預設內容
                 if (type === 1) {
@@ -1036,21 +1436,7 @@
                 // 這裡可以添加動畫效果
             }
 
-            showScoreAnimation(element, text) {
-                const popup = document.createElement('div');
-                popup.className = 'score-popup absolute text-green-600 font-bold text-lg pointer-events-none z-50';
-                popup.textContent = text;
-                popup.style.left = element.offsetLeft + 'px';
-                popup.style.top = element.offsetTop + 'px';
-                
-                element.parentElement.appendChild(popup);
-                
-                setTimeout(() => {
-                    popup.remove();
-                }, 1000);
-            }
-
-            showEditModal(student = null) {
+            showEditModal(student = null, defaultSeatNumber = null) {
                 this.editingStudent = student;
                 const modal = document.getElementById('editModal');
                 const seatNumberInput = document.getElementById('editSeatNumber');
@@ -1062,7 +1448,7 @@
                     nameInput.value = student.name;
                     genderSelect.value = student.gender || 'male';
                 } else {
-                    seatNumberInput.value = this.students.length + 1;
+                    seatNumberInput.value = defaultSeatNumber || (this.students.length + 1);
                     nameInput.value = '';
                     genderSelect.value = 'male';
                 }
@@ -1076,14 +1462,6 @@
                 document.getElementById('editModal').classList.add('hidden');
                 document.getElementById('editModal').classList.remove('flex');
                 this.editingStudent = null;
-            }
-
-            editStudent(student) {
-                this.showEditModal(student);
-            }
-
-            addNewStudent() {
-                this.showEditModal();
             }
 
             saveStudent() {
@@ -1104,12 +1482,28 @@
                 } else {
                     // 新增學生
                     const newId = Math.max(...this.students.map(s => s.id), 0) + 1;
-                    this.students.push({
+                    const newStudent = {
                         id: newId,
                         seatNumber: seatNumber,
                         name: name,
                         gender: gender
-                    });
+                    };
+                    
+                    // 如果是16號之後的座號，需要插入到正確位置
+                    if (seatNumber >= 16) {
+                        // 找到插入位置
+                        let insertIndex = this.students.length;
+                        for (let i = 0; i < this.students.length; i++) {
+                            if (this.students[i].seatNumber > seatNumber) {
+                                insertIndex = i;
+                                break;
+                            }
+                        }
+                        this.students.splice(insertIndex, 0, newStudent);
+                    } else {
+                        // 15號以前的直接加到末尾
+                        this.students.push(newStudent);
+                    }
                 }
 
                 this.saveData();
@@ -1136,6 +1530,11 @@
                             delete this.examSeats[pos];
                         }
                     });
+                    Object.keys(this.freeSeats).forEach(pos => {
+                        if (this.freeSeats[pos] === this.editingStudent.id) {
+                            delete this.freeSeats[pos];
+                        }
+                    });
 
                     // 從學生列表中移除
                     this.students = this.students.filter(s => s.id !== this.editingStudent.id);
@@ -1156,8 +1555,10 @@
                         this.normalSeats = {};
                     } else if (this.currentMode === 'group') {
                         this.groupSeats = {};
-                    } else {
+                    } else if (this.currentMode === 'exam') {
                         this.examSeats = {};
+                    } else {
+                        this.freeSeats = {};
                     }
                     this.saveData();
                     this.renderSeats();
@@ -1256,462 +1657,1053 @@
                 }
             }
 
-            // 抽籤系統
             startLottery(type) {
                 if (this.isLotteryRunning) return;
                 
-                // 獲取有座位的學生
-                const seats = this.getCurrentSeats();
-                const seatedStudents = [];
+                // 清除之前的選擇
+                this.clearSelection();
                 
-                Object.values(seats).forEach(studentId => {
-                    const student = this.students.find(s => s.id === studentId);
-                    if (student) {
-                        if (type === 'all' || 
-                            (type === 'male' && student.gender === 'male') ||
-                            (type === 'female' && student.gender === 'female')) {
-                            seatedStudents.push(student);
-                        }
-                    }
-                });
+                // 獲取符合條件的學生
+                const eligibleStudents = this.getEligibleStudents(type);
                 
-                if (seatedStudents.length === 0) {
-                    const typeText = type === 'male' ? '男生' : type === 'female' ? '女生' : '學生';
-                    alert(`教室內沒有${typeText}可以抽籤！`);
+                if (eligibleStudents.length === 0) {
+                    const typeText = type === 'all' ? '所有' : (type === 'male' ? '男' : '女');
+                    alert(`沒有${typeText}學生在座位上，無法進行抽籤！`);
                     return;
                 }
                 
                 this.isLotteryRunning = true;
-                this.runLotteryAnimation(seatedStudents);
+                this.disableLotteryButtons();
+                
+                // 開始閃爍動畫
+                this.startFlashAnimation(eligibleStudents);
+                
+                // 3秒後選出結果
+                setTimeout(() => {
+                    this.selectWinner(eligibleStudents);
+                }, 3000);
             }
 
-            runLotteryAnimation(candidates) {
-                // 清除之前的選擇
-                this.selectedStudent = null;
-                this.renderSeats();
+            getEligibleStudents(type) {
+                const seats = this.getCurrentSeats();
+                const eligibleStudents = [];
                 
-                let flashCount = 0;
-                const maxFlashes = 10; // 閃爍次數
-                const flashInterval = 300; // 每次閃爍間隔
-                
-                const flashAnimation = setInterval(() => {
-                    // 移除所有閃爍效果
-                    document.querySelectorAll('.lottery-flash').forEach(seat => {
-                        seat.classList.remove('lottery-flash');
-                    });
-                    
-                    if (flashCount >= maxFlashes) {
-                        clearInterval(flashAnimation);
-                        this.selectFinalWinner(candidates);
-                        return;
+                Object.keys(seats).forEach(position => {
+                    const studentId = seats[position];
+                    if (studentId) {
+                        const student = this.students.find(s => s.id === studentId);
+                        if (student) {
+                            if (type === 'all' || student.gender === type) {
+                                eligibleStudents.push({
+                                    student: student,
+                                    position: position
+                                });
+                            }
+                        }
                     }
-                    
-                    // 隨機選擇一個候選人進行閃爍
-                    const randomStudent = candidates[Math.floor(Math.random() * candidates.length)];
-                    const seatElement = this.findSeatElement(randomStudent.id);
-                    
-                    if (seatElement) {
-                        seatElement.classList.add('lottery-flash');
-                    }
-                    
-                    flashCount++;
-                }, flashInterval);
-            }
-
-            selectFinalWinner(candidates) {
-                // 選擇最終獲勝者
-                const winner = candidates[Math.floor(Math.random() * candidates.length)];
-                this.selectedStudent = winner;
-                
-                // 移除所有閃爍效果
-                document.querySelectorAll('.lottery-flash').forEach(seat => {
-                    seat.classList.remove('lottery-flash');
                 });
                 
-                // 重新渲染座位以顯示選中效果
-                this.renderSeats();
+                return eligibleStudents;
+            }
+
+            startFlashAnimation(eligibleStudents) {
+                this.flashIntervals = [];
+                
+                eligibleStudents.forEach((item, index) => {
+                    const seatElement = document.querySelector(`[data-position="${item.position}"]`);
+                    if (seatElement) {
+                        // 為每個學生設定不同的隨機閃爍間隔
+                        const randomInterval = 200 + Math.random() * 400; // 200-600ms 隨機間隔
+                        const randomDelay = Math.random() * 300; // 0-300ms 隨機延遲開始
+                        
+                        setTimeout(() => {
+                            const interval = setInterval(() => {
+                                if (seatElement.classList.contains('lottery-flash')) {
+                                    seatElement.classList.remove('lottery-flash');
+                                } else {
+                                    seatElement.classList.add('lottery-flash');
+                                }
+                            }, randomInterval);
+                            
+                            this.flashIntervals.push(interval);
+                        }, randomDelay);
+                    }
+                });
+            }
+
+            selectWinner(eligibleStudents) {
+                // 停止所有閃爍動畫計時器
+                if (this.flashIntervals) {
+                    this.flashIntervals.forEach(interval => clearInterval(interval));
+                    this.flashIntervals = [];
+                }
+                
+                // 清除所有閃爍效果
+                eligibleStudents.forEach(item => {
+                    const seatElement = document.querySelector(`[data-position="${item.position}"]`);
+                    if (seatElement) {
+                        seatElement.classList.remove('lottery-flash');
+                    }
+                });
+                
+                // 隨機選擇獲勝者
+                const winner = eligibleStudents[Math.floor(Math.random() * eligibleStudents.length)];
+                this.selectedStudent = winner;
+                
+                // 標記獲勝者
+                const winnerSeat = document.querySelector(`[data-position="${winner.position}"]`);
+                if (winnerSeat) {
+                    winnerSeat.classList.add('lottery-selected');
+                }
+                
+                // 語音播報結果
+                this.speakLotteryResult(winner.student.seatNumber);
                 
                 // 顯示取消標記按鈕
                 document.getElementById('clearSelection').classList.remove('hidden');
                 
                 this.isLotteryRunning = false;
-                
-                // 顯示結果
-                const genderText = winner.gender === 'male' ? '(男生)' : '(女生)';
-                alert(`🎉 抽籤結果：${winner.seatNumber}號 ${winner.name} ${genderText}`);
-            }
-
-            findSeatElement(studentId) {
-                const seats = this.getCurrentSeats();
-                for (const [position, seatStudentId] of Object.entries(seats)) {
-                    if (seatStudentId === studentId) {
-                        return document.querySelector(`[data-position="${position}"]`);
-                    }
-                }
-                return null;
+                this.enableLotteryButtons();
             }
 
             clearSelection() {
-                this.selectedStudent = null;
-                this.renderSeats();
+                // 停止所有閃爍動畫計時器
+                if (this.flashIntervals) {
+                    this.flashIntervals.forEach(interval => clearInterval(interval));
+                    this.flashIntervals = [];
+                }
+                
+                if (this.selectedStudent) {
+                    const seatElement = document.querySelector(`[data-position="${this.selectedStudent.position}"]`);
+                    if (seatElement) {
+                        seatElement.classList.remove('lottery-selected');
+                    }
+                    this.selectedStudent = null;
+                }
+                
+                // 隱藏取消標記按鈕
                 document.getElementById('clearSelection').classList.add('hidden');
-            }
-
-            // 班級管理相關方法
-            renderClassSelector() {
-                const currentClass = this.classes.find(c => c.id === this.currentClass);
-                document.getElementById('currentClassName').textContent = currentClass ? currentClass.name : '101';
-                this.renderClassDropdown();
-            }
-
-            renderClassDropdown() {
-                const dropdown = document.getElementById('classDropdown');
-                dropdown.innerHTML = '';
-
-                this.classes.forEach(classItem => {
-                    const div = document.createElement('div');
-                    div.className = `px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between ${
-                        classItem.id === this.currentClass ? 'bg-blue-50 text-blue-600' : ''
-                    }`;
-                    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = classItem.name;
-                    
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'flex gap-1';
-                    
-                    if (classItem.id === this.currentClass) {
-                        const currentBadge = document.createElement('span');
-                        currentBadge.className = 'text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded';
-                        currentBadge.textContent = '目前';
-                        actionsDiv.appendChild(currentBadge);
-                    }
-                    
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'text-xs text-gray-500 hover:text-gray-700 px-1';
-                    editBtn.innerHTML = '✏️';
-                    editBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.editClass(classItem);
-                    });
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'text-xs text-red-500 hover:text-red-700 px-1';
-                    deleteBtn.innerHTML = '🗑️';
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.deleteClass(classItem);
-                    });
-                    
-                    actionsDiv.appendChild(editBtn);
-                    if (this.classes.length > 1) { // 至少保留一個班級
-                        actionsDiv.appendChild(deleteBtn);
-                    }
-                    
-                    div.appendChild(nameSpan);
-                    div.appendChild(actionsDiv);
-                    
-                    div.addEventListener('click', () => {
-                        if (classItem.id !== this.currentClass) {
-                            this.switchClass(classItem.id);
-                        }
-                        this.hideClassDropdown();
-                    });
-                    
-                    dropdown.appendChild(div);
+                
+                // 清除所有閃爍效果
+                document.querySelectorAll('.lottery-flash').forEach(element => {
+                    element.classList.remove('lottery-flash');
                 });
             }
 
-            toggleClassDropdown() {
-                const dropdown = document.getElementById('classDropdown');
-                dropdown.classList.toggle('hidden');
+            disableLotteryButtons() {
+                document.getElementById('lotteryAll').disabled = true;
+                document.getElementById('lotteryBoys').disabled = true;
+                document.getElementById('lotteryGirls').disabled = true;
+                
+                document.getElementById('lotteryAll').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('lotteryBoys').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('lotteryGirls').classList.add('opacity-50', 'cursor-not-allowed');
             }
 
-            hideClassDropdown() {
-                document.getElementById('classDropdown').classList.add('hidden');
+            enableLotteryButtons() {
+                document.getElementById('lotteryAll').disabled = false;
+                document.getElementById('lotteryBoys').disabled = false;
+                document.getElementById('lotteryGirls').disabled = false;
+                
+                document.getElementById('lotteryAll').classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('lotteryBoys').classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('lotteryGirls').classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            switchClass(classId) {
-                // 保存當前班級資料
-                this.saveData();
-                
-                // 切換到新班級
-                this.currentClass = classId;
-                
-                // 重新載入新班級的資料
-                this.students = this.loadStudents();
-                this.normalSeats = this.loadSeats('normal');
-                this.groupSeats = this.loadSeats('group');
-                this.examSeats = this.loadSeats('exam');
-                this.scores = this.loadScores();
-                this.scoreHistory = this.loadScoreHistory();
-                this.selectedStudent = null;
-                
-                // 更新顯示
-                this.renderClassSelector();
-                this.renderStudentList();
-                this.renderSeats();
-                
-                // 保存新的當前班級
-                this.saveData();
-            }
 
-            showClassModal() {
-                this.renderClassManageList();
-                const modal = document.getElementById('classModal');
+
+            showStudentSettingsModal(student) {
+                this.currentSettingsStudent = student;
+                this.selectedSettingsScoreType = null;
+                const modal = document.getElementById('studentSettingsModal');
+                const studentName = document.getElementById('settingsStudentName');
+                const studentScore = document.getElementById('settingsStudentScore');
+                const reasonInput = document.getElementById('settingsScoreReason');
+                
+                studentName.textContent = `${student.seatNumber}號 ${student.name}`;
+                studentScore.textContent = `積分：${this.scores[student.id] || 0}分`;
+                reasonInput.value = '';
+                
+                // 為快速原因按鈕添加事件監聽器
+                const reasonButtons = modal.querySelectorAll('.settings-reason-btn');
+                reasonButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        reasonInput.value = btn.textContent.trim();
+                        reasonInput.focus();
+                    });
+                });
+                
+                // 為快速分數按鈕添加事件監聽器
+                const quickScoreButtons = modal.querySelectorAll('.settings-quick-score-btn');
+                quickScoreButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const score = parseInt(btn.dataset.score);
+                        document.getElementById('settingsScoreAmount').value = score;
+                        this.updateSettingsScoreButtonText();
+                    });
+                });
+                
+                // 為分數輸入框添加事件監聽器
+                document.getElementById('settingsScoreAmount').addEventListener('input', () => {
+                    this.updateSettingsScoreButtonText();
+                });
+                
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             }
 
-            hideClassModal() {
-                document.getElementById('classModal').classList.add('hidden');
-                document.getElementById('classModal').classList.remove('flex');
+            hideStudentSettingsModal() {
+                document.getElementById('studentSettingsModal').classList.add('hidden');
+                document.getElementById('studentSettingsModal').classList.remove('flex');
+                this.currentSettingsStudent = null;
+                this.selectedSettingsScoreType = null;
             }
 
-            renderClassManageList() {
-                const container = document.getElementById('classManageList');
-                container.innerHTML = '';
+            selectSettingsScoreType(type) {
+                const scoreAmount = parseInt(document.getElementById('settingsScoreAmount').value) || 1;
+                this.selectedSettingsScoreType = type * scoreAmount;
+                const reasonInput = document.getElementById('settingsScoreReason');
+                
+                // 更新按鈕文字
+                document.getElementById('settingsAddScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('settingsSubtractScoreText').textContent = `-${scoreAmount}`;
+                
+                // 設定預設內容
+                if (type === 1) {
+                    reasonInput.value = '表現優良';
+                } else {
+                    reasonInput.value = '表現不好';
+                }
+                
+                reasonInput.focus();
+                reasonInput.select();
+            }
 
-                this.classes.forEach(classItem => {
-                    const div = document.createElement('div');
-                    div.className = `flex items-center justify-between p-3 bg-gray-50 rounded-lg ${
-                        classItem.id === this.currentClass ? 'border-2 border-blue-400' : 'border border-gray-200'
-                    }`;
-                    
-                    const leftDiv = document.createElement('div');
-                    leftDiv.className = 'flex items-center gap-3';
-                    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = 'font-medium';
-                    nameSpan.textContent = classItem.name;
-                    
-                    if (classItem.id === this.currentClass) {
-                        const badge = document.createElement('span');
-                        badge.className = 'text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded';
-                        badge.textContent = '目前班級';
-                        leftDiv.appendChild(nameSpan);
-                        leftDiv.appendChild(badge);
-                    } else {
-                        leftDiv.appendChild(nameSpan);
-                    }
-                    
-                    const rightDiv = document.createElement('div');
-                    rightDiv.className = 'flex gap-2';
-                    
-                    if (classItem.id !== this.currentClass) {
-                        const switchBtn = document.createElement('button');
-                        switchBtn.className = 'px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors';
-                        switchBtn.textContent = '切換';
-                        switchBtn.addEventListener('click', () => {
-                            this.switchClass(classItem.id);
-                            this.hideClassModal();
-                        });
-                        rightDiv.appendChild(switchBtn);
-                    }
-                    
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors';
-                    editBtn.textContent = '編輯';
-                    editBtn.addEventListener('click', () => {
-                        this.editClass(classItem);
+            confirmSettingsScore() {
+                if (!this.selectedSettingsScoreType) {
+                    alert('請先選擇加分或扣分');
+                    return;
+                }
+                
+                const reason = document.getElementById('settingsScoreReason').value.trim();
+                if (!reason) {
+                    alert('請輸入加減分原因');
+                    return;
+                }
+
+                const student = this.currentSettingsStudent;
+                
+                // 更新積分
+                if (!this.scores[student.id]) {
+                    this.scores[student.id] = 0;
+                }
+                this.scores[student.id] += this.selectedSettingsScoreType;
+                
+                // 記錄歷史
+                if (!this.scoreHistory[student.id]) {
+                    this.scoreHistory[student.id] = [];
+                }
+                
+                this.scoreHistory[student.id].push({
+                    date: new Date().toLocaleString('zh-TW'),
+                    change: this.selectedSettingsScoreType,
+                    reason: reason,
+                    total: this.scores[student.id]
+                });
+                
+                this.saveData();
+                this.renderStudentList();
+                this.renderSeats();
+                
+                // 更新模態框中的積分顯示
+                const studentScore = document.getElementById('settingsStudentScore');
+                studentScore.textContent = `積分：${this.scores[student.id]}分`;
+                
+                // 清除選擇狀態
+                this.selectedSettingsScoreType = null;
+                document.getElementById('settingsScoreReason').value = '';
+                
+                alert(`積分調整完成！${student.name}目前積分：${this.scores[student.id]}分`);
+            }
+
+            viewHistoryFromSettings() {
+                this.hideStudentSettingsModal();
+                this.showHistoryModal(this.currentSettingsStudent);
+            }
+
+            editStudentFromSettings() {
+                const studentToEdit = this.currentSettingsStudent;
+                this.hideStudentSettingsModal();
+                this.showEditModal(studentToEdit);
+            }
+
+            // 計時器功能方法
+            showTimerModal() {
+                const modal = document.getElementById('timerModal');
+                
+                // 為快速時間按鈕添加事件監聽器
+                const quickTimeButtons = modal.querySelectorAll('.quick-time-btn');
+                quickTimeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const minutes = parseInt(btn.dataset.minutes);
+                        document.getElementById('timerHours').value = Math.floor(minutes / 60);
+                        document.getElementById('timerMinutes').value = minutes % 60;
+                        document.getElementById('timerSeconds').value = 0;
                     });
-                    rightDiv.appendChild(editBtn);
+                });
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            hideTimerModal() {
+                document.getElementById('timerModal').classList.add('hidden');
+                document.getElementById('timerModal').classList.remove('flex');
+            }
+
+            startCountdownTimer() {
+                const hours = parseInt(document.getElementById('timerHours').value) || 0;
+                const minutes = parseInt(document.getElementById('timerMinutes').value) || 0;
+                const seconds = parseInt(document.getElementById('timerSeconds').value) || 0;
+                
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                
+                if (totalSeconds <= 0) {
+                    alert('請設定有效的時間！');
+                    return;
+                }
+                
+                this.timerRemaining = totalSeconds;
+                this.timerRunning = true;
+                this.timerPaused = false;
+                
+                this.hideTimerModal();
+                this.showTimerControls();
+                this.runTimer();
+            }
+
+            showTimerControls() {
+                document.getElementById('timerDisplay').classList.remove('hidden');
+                document.getElementById('pauseTimer').classList.remove('hidden');
+                document.getElementById('stopTimer').classList.remove('hidden');
+                
+                // 更新計時器按鈕文字
+                document.getElementById('timerBtn').textContent = '設定計時器';
+            }
+
+            hideTimerControls() {
+                document.getElementById('timerDisplay').classList.add('hidden');
+                document.getElementById('pauseTimer').classList.add('hidden');
+                document.getElementById('stopTimer').classList.add('hidden');
+                
+                // 恢復計時器按鈕文字
+                document.getElementById('timerBtn').textContent = '計時器';
+            }
+
+            runTimer() {
+                this.updateTimerDisplay();
+                
+                this.timerInterval = setInterval(() => {
+                    if (!this.timerPaused) {
+                        this.timerRemaining--;
+                        this.updateTimerDisplay();
+                        
+                        if (this.timerRemaining <= 0) {
+                            this.timerFinished();
+                        }
+                    }
+                }, 1000);
+            }
+
+            updateTimerDisplay() {
+                const hours = Math.floor(this.timerRemaining / 3600);
+                const minutes = Math.floor((this.timerRemaining % 3600) / 60);
+                const seconds = this.timerRemaining % 60;
+                
+                let display = '';
+                if (hours > 0) {
+                    display = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                document.getElementById('timerDisplay').textContent = display;
+                
+                // 最後10秒變紅色
+                if (this.timerRemaining <= 10 && this.timerRemaining > 0) {
+                    document.getElementById('timerDisplay').className = 'text-lg font-mono font-bold text-red-600 min-w-20 text-center animate-pulse';
+                } else {
+                    document.getElementById('timerDisplay').className = 'text-lg font-mono font-bold text-gray-700 min-w-20 text-center';
+                }
+            }
+
+            pauseTimer() {
+                if (this.timerRunning) {
+                    this.timerPaused = !this.timerPaused;
+                    const pauseBtn = document.getElementById('pauseTimer');
                     
-                    if (this.classes.length > 1) {
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors';
-                        deleteBtn.textContent = '刪除';
-                        deleteBtn.addEventListener('click', () => {
-                            this.deleteClass(classItem);
-                        });
-                        rightDiv.appendChild(deleteBtn);
+                    if (this.timerPaused) {
+                        pauseBtn.textContent = '繼續';
+                        pauseBtn.className = 'px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors';
+                    } else {
+                        pauseBtn.textContent = '暫停';
+                        pauseBtn.className = 'px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors';
+                    }
+                }
+            }
+
+            stopTimer() {
+                if (confirm('確定要停止計時器嗎？')) {
+                    if (this.timerInterval) {
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
                     }
                     
-                    div.appendChild(leftDiv);
-                    div.appendChild(rightDiv);
+                    this.timerRunning = false;
+                    this.timerPaused = false;
+                    this.timerRemaining = 0;
+                    
+                    this.hideTimerControls();
+                }
+            }
+
+            timerFinished() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+                
+                this.timerRunning = false;
+                this.timerPaused = false;
+                
+                // 播放響鈴音效和語音提醒
+                this.playAlarmSound();
+                this.speakTimeUp();
+                
+                // 顯示時間到提醒視窗
+                this.showTimeUpModal();
+                
+                // 隱藏計時器控制項
+                this.hideTimerControls();
+            }
+
+            playAlarmSound() {
+                // 創建音頻上下文來播放響鈴音效
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // 播放3次響鈴
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            // 創建振盪器產生響鈴音
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+                            
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+                            
+                            // 設定響鈴頻率和音量
+                            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                            
+                            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                            
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.5);
+                        }, i * 600); // 每600毫秒響一次
+                    }
+                } catch (error) {
+                    console.log('無法播放音效:', error);
+                }
+            }
+
+            speakTimeUp() {
+                // 使用瀏覽器的語音合成API念出"時間到囉"三次
+                if ('speechSynthesis' in window) {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            const utterance = new SpeechSynthesisUtterance('時間到囉');
+                            utterance.lang = 'zh-TW'; // 設定為繁體中文
+                            utterance.rate = 1; // 語速
+                            utterance.pitch = 1; // 音調
+                            utterance.volume = 0.8; // 音量
+                            
+                            // 嘗試使用Google的語音（如果可用）
+                            const voices = speechSynthesis.getVoices();
+                            const googleVoice = voices.find(voice => 
+                                voice.name.includes('Google') && voice.lang.includes('zh')
+                            );
+                            if (googleVoice) {
+                                utterance.voice = googleVoice;
+                            }
+                            
+                            speechSynthesis.speak(utterance);
+                        }, i * 1500); // 每1.5秒念一次
+                    }
+                } else {
+                    console.log('瀏覽器不支援語音合成功能');
+                }
+            }
+
+            speakLotteryResult(seatNumber) {
+                // 使用瀏覽器的語音合成API念出抽籤結果
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(`恭喜${seatNumber}號`);
+                    utterance.lang = 'zh-TW'; // 設定為繁體中文
+                    utterance.rate = 0.9; // 稍微慢一點的語速
+                    utterance.pitch = 1.2; // 稍微高一點的音調，表示恭喜
+                    utterance.volume = 0.9; // 音量
+                    
+                    // 嘗試使用Google的語音（如果可用）
+                    const voices = speechSynthesis.getVoices();
+                    const googleVoice = voices.find(voice => 
+                        voice.name.includes('Google') && voice.lang.includes('zh')
+                    );
+                    if (googleVoice) {
+                        utterance.voice = googleVoice;
+                    }
+                    
+                    speechSynthesis.speak(utterance);
+                } else {
+                    console.log('瀏覽器不支援語音合成功能');
+                }
+            }
+
+            showTimeUpModal() {
+                const modal = document.getElementById('timeUpModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            hideTimeUpModal() {
+                const modal = document.getElementById('timeUpModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            // 小組積分相關方法
+            showGroupScoresModal() {
+                const modal = document.getElementById('groupScoresModal');
+                const container = document.getElementById('groupScoresList');
+                
+                // 計算每組積分
+                const groupScores = [];
+                for (let i = 1; i <= 6; i++) {
+                    groupScores.push({
+                        group: i,
+                        score: this.groupScores[i] || 0
+                    });
+                }
+                
+                // 按積分排序
+                groupScores.sort((a, b) => b.score - a.score);
+
+                container.innerHTML = '';
+                groupScores.forEach((group, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                ${index + 1}
+                            </span>
+                            <span>第${group.group}組</span>
+                        </div>
+                        <span class="text-lg font-bold text-green-600">${group.score}分</span>
+                    `;
                     container.appendChild(div);
                 });
-            }
 
-            showClassEditModal(classItem = null) {
-                this.editingClass = classItem;
-                const modal = document.getElementById('classEditModal');
-                const title = document.getElementById('classEditTitle');
-                const input = document.getElementById('classNameInput');
-                
-                if (classItem) {
-                    title.textContent = '編輯班級';
-                    input.value = classItem.name;
-                } else {
-                    title.textContent = '新增班級';
-                    input.value = '';
-                }
-                
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
-                input.focus();
             }
 
-            hideClassEditModal() {
-                document.getElementById('classEditModal').classList.add('hidden');
-                document.getElementById('classEditModal').classList.remove('flex');
-                this.editingClass = null;
+            hideGroupScoresModal() {
+                document.getElementById('groupScoresModal').classList.add('hidden');
+                document.getElementById('groupScoresModal').classList.remove('flex');
             }
 
-            editClass(classItem) {
-                this.hideClassModal();
-                this.showClassEditModal(classItem);
-            }
-
-            saveClass() {
-                const name = document.getElementById('classNameInput').value.trim();
-                if (!name) {
-                    alert('請輸入班級名稱');
-                    return;
-                }
-
-                if (this.editingClass) {
-                    // 編輯現有班級
-                    this.editingClass.name = name;
-                } else {
-                    // 新增班級
-                    const newId = 'class_' + Date.now();
-                    this.classes.push({
-                        id: newId,
-                        name: name
+            showGroupScoreModal(groupNumber) {
+                this.currentGroupNumber = groupNumber;
+                this.selectedGroupScoreType = null;
+                const modal = document.getElementById('groupScoreModal');
+                const groupName = document.getElementById('groupScoreGroupName');
+                const reasonInput = document.getElementById('groupScoreReason');
+                
+                groupName.textContent = `第${groupNumber}組`;
+                reasonInput.value = '';
+                
+                // 為快速原因按鈕添加事件監聽器
+                const reasonButtons = modal.querySelectorAll('.group-reason-btn');
+                reasonButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        reasonInput.value = btn.textContent.trim();
+                        reasonInput.focus();
                     });
-                }
-
-                this.saveData();
-                this.renderClassSelector();
-                this.hideClassEditModal();
+                });
                 
-                if (!this.editingClass) {
-                    // 如果是新增班級，詢問是否切換
-                    if (confirm(`班級「${name}」已建立！是否立即切換到此班級？`)) {
-                        const newClass = this.classes[this.classes.length - 1];
-                        this.switchClass(newClass.id);
-                    }
-                }
-            }
-
-            deleteClass(classItem) {
-                if (this.classes.length <= 1) {
-                    alert('至少需要保留一個班級！');
-                    return;
-                }
-
-                if (!confirm(`確定要刪除班級「${classItem.name}」嗎？\n\n⚠️ 警告：這將永久刪除該班級的所有資料，包括學生資料、座位安排和積分記錄！`)) {
-                    return;
-                }
-
-                // 如果刪除的是當前班級，切換到第一個其他班級
-                if (classItem.id === this.currentClass) {
-                    const otherClass = this.classes.find(c => c.id !== classItem.id);
-                    if (otherClass) {
-                        this.switchClass(otherClass.id);
-                    }
-                }
-
-                // 刪除班級資料
-                this.classes = this.classes.filter(c => c.id !== classItem.id);
+                // 為快速分數按鈕添加事件監聽器
+                const quickScoreButtons = modal.querySelectorAll('.group-quick-score-btn');
+                quickScoreButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const score = parseInt(btn.dataset.score);
+                        document.getElementById('groupScoreAmount').value = score;
+                        this.updateGroupScoreButtonText();
+                    });
+                });
                 
-                // 清除該班級的所有本地存儲資料
-                localStorage.removeItem(`classroom_students_${classItem.id}`);
-                localStorage.removeItem(`classroom_seats_normal_${classItem.id}`);
-                localStorage.removeItem(`classroom_seats_group_${classItem.id}`);
-                localStorage.removeItem(`classroom_seats_exam_${classItem.id}`);
-                localStorage.removeItem(`classroom_scores_${classItem.id}`);
-                localStorage.removeItem(`classroom_score_history_${classItem.id}`);
-
-                this.saveData();
-                this.renderClassSelector();
-                this.renderClassManageList();
-            }
-
-            // 批量設定相關方法
-            showBatchModal() {
-                const modal = document.getElementById('batchModal');
+                // 為分數輸入框添加事件監聽器
+                document.getElementById('groupScoreAmount').addEventListener('input', () => {
+                    this.updateGroupScoreButtonText();
+                });
+                
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             }
 
-            hideBatchModal() {
-                document.getElementById('batchModal').classList.add('hidden');
-                document.getElementById('batchModal').classList.remove('flex');
+            hideGroupScoreModal() {
+                document.getElementById('groupScoreModal').classList.add('hidden');
+                document.getElementById('groupScoreModal').classList.remove('flex');
+                this.currentGroupNumber = null;
+                this.selectedGroupScoreType = null;
             }
 
-            confirmBatchSetup() {
-                const totalStudents = parseInt(document.getElementById('totalStudents').value);
-                const maleStart = parseInt(document.getElementById('maleStart').value);
-                const maleEnd = parseInt(document.getElementById('maleEnd').value);
-                const femaleStart = parseInt(document.getElementById('femaleStart').value);
-                const femaleEnd = parseInt(document.getElementById('femaleEnd').value);
+            selectGroupScoreType(type) {
+                const scoreAmount = parseInt(document.getElementById('groupScoreAmount').value) || 1;
+                this.selectedGroupScoreType = type * scoreAmount;
+                const reasonInput = document.getElementById('groupScoreReason');
+                
+                // 更新按鈕文字
+                document.getElementById('addGroupScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('subtractGroupScoreText').textContent = `-${scoreAmount}`;
+                
+                // 設定預設內容
+                if (type === 1) {
+                    reasonInput.value = '小組表現優良';
+                } else {
+                    reasonInput.value = '小組表現不佳';
+                }
+                
+                reasonInput.focus();
+                reasonInput.select();
+            }
 
-                // 驗證輸入
-                if (maleStart > maleEnd || femaleStart > femaleEnd) {
-                    alert('座號範圍設定錯誤！起始號碼不能大於結束號碼');
+            confirmGroupScore() {
+                if (!this.selectedGroupScoreType) {
+                    alert('請先選擇加分或扣分');
+                    return;
+                }
+                
+                const reason = document.getElementById('groupScoreReason').value.trim();
+                if (!reason) {
+                    alert('請輸入加減分原因');
                     return;
                 }
 
-                if (maleEnd >= femaleStart && maleStart <= femaleEnd) {
-                    alert('男生和女生的座號範圍不能重疊！');
-                    return;
+                const groupNumber = this.currentGroupNumber;
+                
+                // 更新小組積分
+                if (!this.groupScores[groupNumber]) {
+                    this.groupScores[groupNumber] = 0;
                 }
-
-                const maxSeatNumber = Math.max(maleEnd, femaleEnd);
-                if (totalStudents < maxSeatNumber) {
-                    alert(`總學生數量不能少於最大座號 ${maxSeatNumber}！`);
-                    return;
+                this.groupScores[groupNumber] += this.selectedGroupScoreType;
+                
+                // 記錄歷史
+                if (!this.groupScoreHistory[groupNumber]) {
+                    this.groupScoreHistory[groupNumber] = [];
                 }
+                
+                this.groupScoreHistory[groupNumber].push({
+                    date: new Date().toLocaleString('zh-TW'),
+                    change: this.selectedGroupScoreType,
+                    reason: reason,
+                    total: this.groupScores[groupNumber]
+                });
+                
+                this.saveData();
+                this.hideGroupScoreModal();
+                
+                // 顯示結果
+                const changeText = this.selectedGroupScoreType > 0 ? `+${this.selectedGroupScoreType}` : `${this.selectedGroupScoreType}`;
+                alert(`第${groupNumber}組積分調整完成！${changeText}分\n目前積分：${this.groupScores[groupNumber]}分`);
+            }
 
-                if (!confirm('確定要重新設定所有學生資料嗎？這將清除所有現有資料！')) {
-                    return;
+            resetAllGroupScores() {
+                if (confirm('確定要重置所有小組的積分嗎？')) {
+                    this.groupScores = {};
+                    this.groupScoreHistory = {};
+                    this.saveData();
+                    this.hideGroupScoresModal();
+                    alert('所有小組積分已重置！');
                 }
+            }
 
-                // 重置所有資料
-                this.students = [];
-                this.normalSeats = {};
-                this.groupSeats = {};
-                this.examSeats = {};
-                this.scores = {};
-                this.scoreHistory = {};
-                this.selectedStudent = null;
+            // 更新按鈕文字的方法
+            updateScoreButtonText() {
+                const scoreAmount = parseInt(document.getElementById('scoreAmount').value) || 1;
+                document.getElementById('addScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('subtractScoreText').textContent = `-${scoreAmount}`;
+            }
 
-                // 創建新的學生資料
-                for (let i = 1; i <= totalStudents; i++) {
-                    let gender = 'male'; // 預設男生
+            updateSettingsScoreButtonText() {
+                const scoreAmount = parseInt(document.getElementById('settingsScoreAmount').value) || 1;
+                document.getElementById('settingsAddScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('settingsSubtractScoreText').textContent = `-${scoreAmount}`;
+            }
+
+            updateGroupScoreButtonText() {
+                const scoreAmount = parseInt(document.getElementById('groupScoreAmount').value) || 1;
+                document.getElementById('addGroupScoreText').textContent = `+${scoreAmount}`;
+                document.getElementById('subtractGroupScoreText').textContent = `-${scoreAmount}`;
+            }
+
+            // 匯出學生資料到Excel
+            exportStudentsToExcel() {
+                try {
+                    // 準備資料
+                    const data = [];
                     
-                    // 判斷性別
-                    if (i >= maleStart && i <= maleEnd) {
-                        gender = 'male';
-                    } else if (i >= femaleStart && i <= femaleEnd) {
-                        gender = 'female';
-                    } else {
-                        // 如果座號不在指定範圍內，根據與男生/女生範圍的距離來判斷
-                        const distanceToMale = Math.min(Math.abs(i - maleStart), Math.abs(i - maleEnd));
-                        const distanceToFemale = Math.min(Math.abs(i - femaleStart), Math.abs(i - femaleEnd));
-                        gender = distanceToMale <= distanceToFemale ? 'male' : 'female';
-                    }
-
-                    this.students.push({
-                        id: i,
-                        seatNumber: i,
-                        name: `學生${i}`,
-                        gender: gender
+                    // 標題行
+                    data.push(['座號', '姓名', '性別', '積分']);
+                    
+                    // 按座號排序學生
+                    const sortedStudents = [...this.students].sort((a, b) => a.seatNumber - b.seatNumber);
+                    
+                    // 學生資料
+                    sortedStudents.forEach(student => {
+                        const score = this.scores[student.id] || 0;
+                        const gender = student.gender === 'male' ? '男' : '女';
+                        data.push([student.seatNumber, student.name, gender, score]);
                     });
+                    
+                    // 轉換為CSV格式
+                    const csvContent = data.map(row => 
+                        row.map(cell => `"${cell}"`).join(',')
+                    ).join('\n');
+                    
+                    // 添加BOM以支援中文
+                    const BOM = '\uFEFF';
+                    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    
+                    // 創建下載連結
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    
+                    // 生成檔案名稱（包含日期時間）
+                    const now = new Date();
+                    const dateStr = now.getFullYear() + 
+                        String(now.getMonth() + 1).padStart(2, '0') + 
+                        String(now.getDate()).padStart(2, '0') + '_' +
+                        String(now.getHours()).padStart(2, '0') + 
+                        String(now.getMinutes()).padStart(2, '0');
+                    
+                    link.setAttribute('download', `學生名單_${dateStr}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    alert('學生名單已匯出！檔案格式為CSV，可用Excel開啟。');
+                    
+                } catch (error) {
+                    console.error('匯出失敗:', error);
+                    alert('匯出失敗，請稍後再試。');
                 }
+            }
 
-                this.saveData();
-                this.renderStudentList();
-                this.renderSeats();
-                this.hideBatchModal();
+            // 匯入學生資料
+            importStudentsFromExcel() {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.click();
+            }
+
+            // 處理檔案選擇
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
                 
-                alert(`成功設定 ${totalStudents} 位學生！\n男生：${maleStart}-${maleEnd}號\n女生：${femaleStart}-${femaleEnd}號`);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        this.parseImportFile(content, file.name);
+                    } catch (error) {
+                        console.error('讀取檔案失敗:', error);
+                        alert('讀取檔案失敗，請確認檔案格式正確。');
+                    }
+                };
+                
+                // 根據檔案類型選擇讀取方式
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    reader.readAsText(file, 'UTF-8');
+                } else {
+                    alert('目前僅支援CSV格式檔案。請將Excel檔案另存為CSV格式後再匯入。');
+                }
+                
+                // 清空檔案輸入，允許重複選擇同一檔案
+                event.target.value = '';
+            }
+
+            // 解析匯入檔案
+            parseImportFile(content, fileName) {
+                try {
+                    // 解析CSV內容
+                    const lines = content.split('\n').filter(line => line.trim());
+                    if (lines.length < 2) {
+                        alert('檔案內容不足，請確認檔案包含標題行和資料行。');
+                        return;
+                    }
+                    
+                    // 解析標題行
+                    const headers = this.parseCSVLine(lines[0]);
+                    
+                    // 檢查必要欄位
+                    const requiredFields = ['座號', '姓名'];
+                    const missingFields = requiredFields.filter(field => 
+                        !headers.some(header => header.includes(field))
+                    );
+                    
+                    if (missingFields.length > 0) {
+                        alert(`檔案缺少必要欄位：${missingFields.join('、')}\n請確認檔案包含：座號、姓名、性別（可選）`);
+                        return;
+                    }
+                    
+                    // 找出欄位索引
+                    const seatNumberIndex = headers.findIndex(h => h.includes('座號'));
+                    const nameIndex = headers.findIndex(h => h.includes('姓名'));
+                    const genderIndex = headers.findIndex(h => h.includes('性別'));
+                    const scoreIndex = headers.findIndex(h => h.includes('積分'));
+                    
+                    // 解析學生資料
+                    const importedStudents = [];
+                    const importedScores = {};
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const cells = this.parseCSVLine(lines[i]);
+                        if (cells.length < 2) continue; // 跳過空行或不完整的行
+                        
+                        const seatNumber = parseInt(cells[seatNumberIndex]);
+                        const name = cells[nameIndex]?.trim();
+                        
+                        if (!seatNumber || !name) continue; // 跳過無效資料
+                        
+                        // 性別處理
+                        let gender = 'male'; // 預設男生
+                        if (genderIndex >= 0 && cells[genderIndex]) {
+                            const genderText = cells[genderIndex].trim();
+                            if (genderText.includes('女') || genderText.toLowerCase().includes('female')) {
+                                gender = 'female';
+                            }
+                        }
+                        
+                        const student = {
+                            seatNumber: seatNumber,
+                            name: name,
+                            gender: gender
+                        };
+                        
+                        importedStudents.push(student);
+                        
+                        // 積分處理
+                        if (scoreIndex >= 0 && cells[scoreIndex]) {
+                            const score = parseInt(cells[scoreIndex]) || 0;
+                            importedScores[seatNumber] = score; // 暫時用座號作為key
+                        }
+                    }
+                    
+                    if (importedStudents.length === 0) {
+                        alert('沒有找到有效的學生資料，請檢查檔案內容。');
+                        return;
+                    }
+                    
+                    // 顯示預覽
+                    this.showImportPreview(importedStudents, importedScores);
+                    
+                } catch (error) {
+                    console.error('解析檔案失敗:', error);
+                    alert('解析檔案失敗，請確認檔案格式正確。');
+                }
+            }
+
+            // 解析CSV行（處理引號和逗號）
+            parseCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            // 雙引號轉義
+                            current += '"';
+                            i++; // 跳過下一個引號
+                        } else {
+                            // 切換引號狀態
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        // 欄位分隔符
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                // 添加最後一個欄位
+                result.push(current.trim());
+                
+                return result;
+            }
+
+            // 顯示匯入預覽
+            showImportPreview(students, scores) {
+                this.importData = { students, scores };
+                
+                const modal = document.getElementById('importModal');
+                const preview = document.getElementById('importPreview');
+                
+                let previewHTML = `
+                    <div class="text-sm">
+                        <div class="mb-2 font-semibold">將匯入 ${students.length} 位學生：</div>
+                        <div class="grid grid-cols-4 gap-2 font-semibold text-gray-700 mb-2">
+                            <div>座號</div>
+                            <div>姓名</div>
+                            <div>性別</div>
+                            <div>積分</div>
+                        </div>
+                `;
+                
+                students.slice(0, 10).forEach(student => { // 只顯示前10個
+                    const score = scores[student.seatNumber] || 0;
+                    const genderText = student.gender === 'male' ? '男' : '女';
+                    previewHTML += `
+                        <div class="grid grid-cols-4 gap-2 py-1 border-b border-gray-200">
+                            <div>${student.seatNumber}</div>
+                            <div>${student.name}</div>
+                            <div>${genderText}</div>
+                            <div>${score}</div>
+                        </div>
+                    `;
+                });
+                
+                if (students.length > 10) {
+                    previewHTML += `<div class="text-center text-gray-500 mt-2">...還有 ${students.length - 10} 位學生</div>`;
+                }
+                
+                previewHTML += '</div>';
+                preview.innerHTML = previewHTML;
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            // 隱藏匯入模態框
+            hideImportModal() {
+                document.getElementById('importModal').classList.add('hidden');
+                document.getElementById('importModal').classList.remove('flex');
+                this.importData = null;
+            }
+
+            // 確認匯入學生資料
+            confirmImportStudents() {
+                if (!this.importData) return;
+                
+                const replaceAll = document.getElementById('replaceAllStudents').checked;
+                const { students: importedStudents, scores: importedScores } = this.importData;
+                
+                try {
+                    if (replaceAll) {
+                        // 替換模式：清空現有資料
+                        this.students = [];
+                        this.scores = {};
+                        this.scoreHistory = {};
+                        
+                        // 清空所有座位
+                        this.normalSeats = {};
+                        this.groupSeats = {};
+                        this.examSeats = {};
+                        this.freeSeats = {};
+                    }
+                    
+                    // 添加匯入的學生
+                    let addedCount = 0;
+                    let updatedCount = 0;
+                    
+                    importedStudents.forEach(importedStudent => {
+                        // 檢查是否已存在相同座號的學生
+                        const existingIndex = this.students.findIndex(s => s.seatNumber === importedStudent.seatNumber);
+                        
+                        if (existingIndex >= 0) {
+                            // 更新現有學生
+                            const existingStudent = this.students[existingIndex];
+                            existingStudent.name = importedStudent.name;
+                            existingStudent.gender = importedStudent.gender;
+                            
+                            // 更新積分
+                            if (importedScores[importedStudent.seatNumber] !== undefined) {
+                                this.scores[existingStudent.id] = importedScores[importedStudent.seatNumber];
+                            }
+                            
+                            updatedCount++;
+                        } else {
+                            // 新增學生
+                            const newId = Math.max(...this.students.map(s => s.id), 0) + 1;
+                            const newStudent = {
+                                id: newId,
+                                seatNumber: importedStudent.seatNumber,
+                                name: importedStudent.name,
+                                gender: importedStudent.gender
+                            };
+                            
+                            // 插入到正確位置（按座號排序）
+                            let insertIndex = this.students.length;
+                            for (let i = 0; i < this.students.length; i++) {
+                                if (this.students[i].seatNumber > importedStudent.seatNumber) {
+                                    insertIndex = i;
+                                    break;
+                                }
+                            }
+                            this.students.splice(insertIndex, 0, newStudent);
+                            
+                            // 設定積分
+                            if (importedScores[importedStudent.seatNumber] !== undefined) {
+                                this.scores[newId] = importedScores[importedStudent.seatNumber];
+                            }
+                            
+                            addedCount++;
+                        }
+                    });
+                    
+                    // 保存資料並更新顯示
+                    this.saveData();
+                    this.renderStudentList();
+                    this.renderSeats();
+                    this.hideImportModal();
+                    
+                    // 顯示結果
+                    let message = '匯入完成！\n';
+                    if (replaceAll) {
+                        message += `已替換所有學生資料，共匯入 ${importedStudents.length} 位學生。`;
+                    } else {
+                        message += `新增 ${addedCount} 位學生，更新 ${updatedCount} 位學生資料。`;
+                    }
+                    
+                    alert(message);
+                    
+                } catch (error) {
+                    console.error('匯入失敗:', error);
+                    alert('匯入失敗，請稍後再試。');
+                }
             }
         }
 
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c67614a44ef20d',t:'MTc2MDEwMjkxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
