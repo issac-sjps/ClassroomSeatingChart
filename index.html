@@ -2,13 +2,155 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
     <title>教室座位安排系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
             height: 100%;
             box-sizing: border-box;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 1024px) {
+            .control-panel {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .control-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .student-list {
+                width: 100% !important;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            
+            .classroom-area {
+                width: 100% !important;
+                min-height: 500px;
+            }
+            
+            .seat {
+                width: 80px !important;
+                height: 60px !important;
+                font-size: 0.75rem !important;
+            }
+            
+            .student-item {
+                width: 60px !important;
+                height: 48px !important;
+                font-size: 0.7rem !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .control-panel {
+                padding: 1rem;
+            }
+            
+            .control-buttons {
+                gap: 0.5rem;
+            }
+            
+            .control-buttons button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            .seat {
+                width: 70px !important;
+                height: 50px !important;
+                font-size: 0.7rem !important;
+            }
+            
+            .student-item {
+                width: 50px !important;
+                height: 40px !important;
+                font-size: 0.65rem !important;
+            }
+            
+            .seating-area {
+                padding: 1rem !important;
+            }
+            
+            .group-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1rem !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .title {
+                font-size: 1.5rem !important;
+            }
+            
+            .control-buttons button {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .seat {
+                width: 60px !important;
+                height: 45px !important;
+                font-size: 0.65rem !important;
+            }
+            
+            .student-item {
+                width: 45px !important;
+                height: 36px !important;
+                font-size: 0.6rem !important;
+            }
+            
+            .group-container {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .modal-content {
+                margin: 1rem !important;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
+        
+        /* 平板橫向優化 */
+        @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+            .main-content {
+                flex-direction: row;
+            }
+            
+            .student-list {
+                width: 25% !important;
+                max-height: none;
+            }
+            
+            .classroom-area {
+                width: 75% !important;
+            }
+        }
+        
+        /* 自動縮放容器 */
+        .auto-scale-container {
+            transform-origin: top left;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 確保模態框在小螢幕上正常顯示 */
+        .modal-responsive {
+            padding: 0.5rem;
+        }
+        
+        .modal-responsive .modal-content {
+            max-width: 95vw;
+            max-height: 95vh;
+            overflow-y: auto;
         }
         .dragging {
             opacity: 0.5;
@@ -60,8 +202,8 @@
         </div>
 
         <!-- 控制面板 -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="flex flex-wrap gap-4 items-center justify-between">
+        <div class="control-panel bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="control-buttons flex flex-wrap gap-4 items-center justify-between">
                 <!-- 模式選擇 -->
                 <div class="flex gap-2">
                     <button id="normalMode" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
@@ -138,9 +280,9 @@
         </div>
 
         <!-- 主要內容區域 -->
-        <div class="flex gap-6 w-full flex-1">
+        <div class="main-content flex gap-6 w-full flex-1">
             <!-- 學生名單 - 1/4寬度 -->
-            <div class="w-1/4 bg-white rounded-lg shadow-lg p-4 flex-shrink-0">
+            <div class="student-list w-1/4 bg-white rounded-lg shadow-lg p-4 flex-shrink-0">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">學生名單</h3>
                     <div class="flex gap-2">
@@ -163,7 +305,7 @@
             </div>
 
             <!-- 教室座位區域 - 3/4寬度 -->
-            <div class="flex-1 bg-white rounded-lg shadow-lg p-6 flex flex-col">
+            <div class="classroom-area flex-1 bg-white rounded-lg shadow-lg p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3">
                         <h3 class="text-lg font-semibold text-gray-800">教室座位圖</h3>
@@ -185,7 +327,7 @@
                 </div>
 
                 <!-- 座位區域 -->
-                <div id="seatingArea" class="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6 flex-1">
+                <div id="seatingArea" class="seating-area border-2 border-dashed border-gray-300 rounded-lg p-4 mb-6 flex-1">
                     <!-- 座位將在這裡動態生成 -->
                 </div>
 
@@ -198,8 +340,8 @@
     </div>
 
     <!-- 編輯學生模態框 -->
-    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div id="editModal" class="modal-responsive fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="modal-content bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h3 class="text-lg font-semibold mb-4">編輯學生資料</h3>
             <div class="space-y-4">
                 <div>
@@ -660,6 +802,7 @@
                 this.initializeEventListeners();
                 this.renderStudentList();
                 this.renderSeats();
+                this.initializeResponsiveDesign();
             }
 
             loadStudents() {
@@ -1102,7 +1245,7 @@
                 
                 // 創建教室風格的小組座位區域
                 const groupsContainer = document.createElement('div');
-                groupsContainer.className = 'grid grid-cols-3 gap-6 h-full flex-1';
+                groupsContainer.className = 'group-container grid grid-cols-3 gap-6 h-full flex-1';
                 
                 // 決定小組順序（學生視角時顛倒）
                 const groupOrder = this.isStudentView ? [3, 4, 5, 0, 1, 2] : [3, 4, 5, 0, 1, 2];
@@ -2916,6 +3059,138 @@
                 this.importData = null;
             }
 
+            // 初始化響應式設計
+            initializeResponsiveDesign() {
+                // 監聽視窗大小變化
+                window.addEventListener('resize', () => {
+                    this.handleResponsiveResize();
+                });
+                
+                // 監聽裝置方向變化
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        this.handleResponsiveResize();
+                    }, 100);
+                });
+                
+                // 初始化時執行一次
+                this.handleResponsiveResize();
+                
+                // 添加觸控支援
+                this.initializeTouchSupport();
+            }
+
+            // 處理響應式調整
+            handleResponsiveResize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // 根據螢幕大小調整座位區域
+                const seatingArea = document.getElementById('seatingArea');
+                if (seatingArea) {
+                    if (width <= 768) {
+                        // 手機版：調整座位間距
+                        seatingArea.style.padding = '0.5rem';
+                    } else if (width <= 1024) {
+                        // 平板版：調整座位間距
+                        seatingArea.style.padding = '1rem';
+                    } else {
+                        // 桌面版：恢復預設間距
+                        seatingArea.style.padding = '1.5rem';
+                    }
+                }
+                
+                // 調整學生名單網格
+                const studentList = document.getElementById('studentList');
+                if (studentList) {
+                    if (width <= 480) {
+                        studentList.className = 'grid grid-cols-4 gap-2';
+                    } else if (width <= 768) {
+                        studentList.className = 'grid grid-cols-6 gap-2';
+                    } else if (width <= 1024) {
+                        studentList.className = 'grid grid-cols-5 gap-3';
+                    } else {
+                        studentList.className = 'grid grid-cols-5 gap-3';
+                    }
+                }
+                
+                // 重新渲染座位以應用新的樣式
+                this.renderSeats();
+            }
+
+            // 初始化觸控支援
+            initializeTouchSupport() {
+                // 為觸控裝置優化拖拽體驗
+                let touchStartX, touchStartY;
+                let isDragging = false;
+                let dragElement = null;
+                
+                document.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                    
+                    // 檢查是否點擊在可拖拽元素上
+                    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (element && (element.draggable || element.closest('[draggable="true"]'))) {
+                        dragElement = element.closest('[draggable="true"]') || element;
+                        isDragging = true;
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                
+                document.addEventListener('touchmove', (e) => {
+                    if (isDragging && dragElement) {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        
+                        // 視覺化拖拽效果
+                        dragElement.style.opacity = '0.7';
+                        dragElement.style.transform = 'scale(1.1)';
+                    }
+                }, { passive: false });
+                
+                document.addEventListener('touchend', (e) => {
+                    if (isDragging && dragElement) {
+                        const touch = e.changedTouches[0];
+                        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+                        
+                        // 恢復元素樣式
+                        dragElement.style.opacity = '';
+                        dragElement.style.transform = '';
+                        
+                        // 處理放置邏輯
+                        if (dropTarget && dropTarget !== dragElement) {
+                            this.handleTouchDrop(dragElement, dropTarget);
+                        }
+                        
+                        isDragging = false;
+                        dragElement = null;
+                    }
+                });
+            }
+
+            // 處理觸控放置
+            handleTouchDrop(dragElement, dropTarget) {
+                // 找到最近的座位元素
+                const seatElement = dropTarget.closest('[data-position]') || 
+                                  (dropTarget.dataset.position !== undefined ? dropTarget : null);
+                
+                if (seatElement && dragElement.dataset.studentId) {
+                    // 學生拖拽到座位
+                    const studentId = parseInt(dragElement.dataset.studentId);
+                    const position = parseInt(seatElement.dataset.position);
+                    this.assignStudentToSeat(studentId, position);
+                } else if (seatElement && dragElement.dataset.position) {
+                    // 座位之間的拖拽
+                    const fromPosition = parseInt(dragElement.dataset.position);
+                    const toPosition = parseInt(seatElement.dataset.position);
+                    if (fromPosition !== toPosition) {
+                        this.swapSeats(fromPosition, toPosition);
+                    }
+                }
+            }
+
             // 確認匯入學生資料
             confirmImportStudents() {
                 if (!this.importData) return;
@@ -3012,5 +3287,5 @@
         // 初始化系統
         const classroom = new ClassroomManager();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6a2e9d7a6f20d',t:'MTc2MDEwNDc0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c6ab1d616ef20d',t:'MTc2MDEwNTA4Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
