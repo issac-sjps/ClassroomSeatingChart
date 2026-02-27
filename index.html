@@ -1,2244 +1,1576 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教室座位系統 - 教師版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
-            from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } 
-            from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBAbSddZ6VsHjw-NjW77kxS8iuC5-cW_wY",
-            authDomain: "sjps-classroomseatchart.firebaseapp.com",
-            projectId: "sjps-classroomseatchart",
-            storageBucket: "sjps-classroomseatchart.firebasestorage.app",
-            messagingSenderId: "812781751431",
-            appId: "1:812781751431:web:3cad939d2c29fbbde67c22",
-            measurementId: "G-Q74G95W8P8"
-        };
-
-        // 初始化 Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // 讓全域可以存取
-        window._firebaseAuth = auth;
-        window._firebaseDb = db;
-        window._GoogleAuthProvider = GoogleAuthProvider;
-        window._signInWithPopup = signInWithPopup;
-        window._signOut = signOut;
-        window._onAuthStateChanged = onAuthStateChanged;
-        window._firestoreDoc = doc;
-        window._firestoreSetDoc = setDoc;
-        window._firestoreGetDoc = getDoc;
-        window._firestoreCollection = collection;
-
-        // 通知 Firebase 已準備好
-        window.dispatchEvent(new Event('firebaseReady'));
-    </script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
-
-        :root {
-            --bg-primary: #0f1117;
-            --bg-secondary: #1a1d27;
-            --bg-card: #20243a;
-            --accent-blue: #4f8ef7;
-            --accent-teal: #2dd4bf;
-            --accent-pink: #f472b6;
-            --accent-yellow: #fbbf24;
-            --text-primary: #e8eaf6;
-            --text-secondary: #8892b0;
-            --border: rgba(79, 142, 247, 0.2);
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        /* ── 登入畫面 ── */
-        #loginScreen {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: 
-                radial-gradient(ellipse 80% 60% at 20% 40%, rgba(79,142,247,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(45,212,191,0.08) 0%, transparent 60%),
-                var(--bg-primary);
-        }
-
-        .login-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 3rem 2.5rem;
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-            box-shadow: 0 0 60px rgba(79,142,247,0.08), 0 20px 60px rgba(0,0,0,0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-teal), var(--accent-pink));
-        }
-
-        .login-logo {
-            font-family: 'Space Mono', monospace;
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-        }
-
-        .login-title {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 2.5rem;
-            letter-spacing: 0.05em;
-        }
-
-        .google-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            padding: 0.875rem 1.5rem;
-            background: white;
-            color: #333;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .google-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-
-        .google-btn:active { transform: translateY(0); }
-
-        .setup-notice {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(251,191,36,0.1);
-            border: 1px solid rgba(251,191,36,0.3);
-            border-radius: 10px;
-            font-size: 0.8rem;
-            color: var(--accent-yellow);
-            text-align: left;
-        }
-
-        .setup-notice code {
-            background: rgba(255,255,255,0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.75rem;
-        }
-
-        /* ── 主畫面 Header ── */
-        .app-header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 0.875rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .brand-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-
-        .brand-name {
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--text-primary);
-        }
-
-        .header-user {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-teal);
-            object-fit: cover;
-        }
-
-        .user-name {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .signout-btn {
-            padding: 0.4rem 0.875rem;
-            background: rgba(244,114,182,0.15);
-            border: 1px solid rgba(244,114,182,0.3);
-            color: var(--accent-pink);
-            border-radius: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .signout-btn:hover {
-            background: rgba(244,114,182,0.25);
-        }
-
-        /* ── 班級選擇 ── */
-        .class-selector-bar {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .class-tab {
-            padding: 0.5rem 1.25rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-            color: var(--text-secondary);
-            background: transparent;
-        }
-
-        .class-tab:hover {
-            border-color: var(--border);
-            color: var(--text-primary);
-        }
-
-        .class-tab.active {
-            background: rgba(79,142,247,0.15);
-            border-color: rgba(79,142,247,0.4);
-            color: var(--accent-blue);
-        }
-
-        .add-class-btn {
-            padding: 0.5rem 1rem;
-            background: rgba(45,212,191,0.1);
-            border: 1px dashed rgba(45,212,191,0.4);
-            color: var(--accent-teal);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .add-class-btn:hover {
-            background: rgba(45,212,191,0.2);
-        }
-
-        .sync-status {
-            margin-left: auto;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .sync-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        .sync-dot.syncing {
-            background: var(--accent-yellow);
-            animation: pulse-yellow 0.8s infinite;
-        }
-
-        @keyframes pulse-yellow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* ── コントロールパネル ── */
-        .control-panel {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 0.875rem 1.5rem;
-        }
-
-        .btn {
-            padding: 0.45rem 1rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .btn-blue {
-            background: rgba(79,142,247,0.15);
-            border-color: rgba(79,142,247,0.35);
-            color: var(--accent-blue);
-        }
-
-        .btn-blue:hover, .btn-blue.active {
-            background: rgba(79,142,247,0.3);
-            border-color: var(--accent-blue);
-        }
-
-        .btn-teal {
-            background: rgba(45,212,191,0.1);
-            border-color: rgba(45,212,191,0.3);
-            color: var(--accent-teal);
-        }
-
-        .btn-teal:hover {
-            background: rgba(45,212,191,0.2);
-        }
-
-        .btn-pink {
-            background: rgba(244,114,182,0.1);
-            border-color: rgba(244,114,182,0.3);
-            color: var(--accent-pink);
-        }
-
-        .btn-pink:hover {
-            background: rgba(244,114,182,0.2);
-        }
-
-        .btn-yellow {
-            background: rgba(251,191,36,0.1);
-            border-color: rgba(251,191,36,0.3);
-            color: var(--accent-yellow);
-        }
-
-        .btn-yellow:hover {
-            background: rgba(251,191,36,0.2);
-        }
-
-        .btn-gray {
-            background: rgba(136,146,176,0.1);
-            border-color: rgba(136,146,176,0.2);
-            color: var(--text-secondary);
-        }
-
-        .btn-gray:hover {
-            background: rgba(136,146,176,0.2);
-            color: var(--text-primary);
-        }
-
-        /* ── メインコンテンツ ── */
-        .main-content {
-            display: flex;
-            height: calc(100vh - 170px);
-            overflow: hidden;
-        }
-
-        /* ── 学生リスト ── */
-        .student-panel {
-            width: 260px;
-            flex-shrink: 0;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .panel-header {
-            padding: 0.875rem 1rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .panel-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-secondary);
-        }
-
-        #studentList {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0.75rem;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            align-content: start;
-        }
-
-        #studentList::-webkit-scrollbar { width: 4px; }
-        #studentList::-webkit-scrollbar-track { background: transparent; }
-        #studentList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-        .student-chip {
-            aspect-ratio: 1;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65rem;
-            cursor: move;
-            transition: all 0.2s;
-            padding: 4px;
-            text-align: center;
-        }
-
-        .student-chip:hover {
-            border-color: var(--accent-blue);
-            background: rgba(79,142,247,0.1);
-            transform: scale(1.05);
-        }
-
-        .student-chip .num {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--accent-blue);
-        }
-
-        .student-chip .name {
-            color: var(--text-primary);
-            font-size: 0.6rem;
-            line-height: 1.2;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
-        }
-
-        .student-chip .gender-dot {
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            margin-top: 2px;
-        }
-
-        .gender-male { background: #60a5fa; }
-        .gender-female { background: var(--accent-pink); }
-
-        .student-chip.empty-slot {
-            border-style: dashed;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-
-        .student-chip.empty-slot:hover {
-            border-color: var(--accent-teal);
-            color: var(--accent-teal);
-        }
-
-        /* ── 座席エリア ── */
-        .classroom-panel {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-primary);
-        }
-
-        .classroom-toolbar {
-            padding: 0.75rem 1.25rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        #seatingArea {
-            flex: 1;
-            overflow: auto;
-            padding: 1.5rem;
-        }
-
-        /* ── 座席 ── */
-        .seat {
-            width: 90px;
-            height: 64px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.72rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .seat:hover {
-            border-color: var(--accent-blue);
-            background: rgba(79,142,247,0.08);
-        }
-
-        .seat.occupied {
-            background: rgba(79,142,247,0.08);
-            border-color: rgba(79,142,247,0.35);
-        }
-
-        .seat.occupied:hover {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 12px rgba(79,142,247,0.2);
-        }
-
-        .seat .seat-num {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.65rem;
-            color: var(--accent-blue);
-            font-weight: 700;
-        }
-
-        .seat .seat-name {
-            color: var(--text-primary);
-            font-size: 0.7rem;
-            font-weight: 500;
-        }
-
-        .seat.drop-zone {
-            border-color: var(--accent-teal) !important;
-            background: rgba(45,212,191,0.12) !important;
-            transform: scale(1.05);
-        }
-
-        .seat.dragging { opacity: 0.5; transform: rotate(3deg) scale(1.1); }
-
-        /* ── 講台 ── */
-        .podium {
-            text-align: center;
-            padding: 0.75rem;
-            background: rgba(79,142,247,0.08);
-            border: 1px solid rgba(79,142,247,0.25);
-            border-radius: 10px;
-            margin: 0.5rem 0 1.25rem;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--accent-blue);
-            letter-spacing: 0.15em;
-            font-family: 'Space Mono', monospace;
-        }
-
-        /* ── 通常座席レイアウト ── */
-        .normal-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 0 1rem;
-        }
-
-        .seat-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        /* ── グループ座席 ── */
-        .group-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-        }
-
-        .group-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
-            position: relative;
-        }
-
-        .group-label-btn {
-            position: absolute;
-            top: -12px; left: 12px;
-            background: var(--bg-secondary);
-            border: 1px solid rgba(45,212,191,0.4);
-            color: var(--accent-teal);
-            padding: 2px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: 'Space Mono', monospace;
-        }
-
-        .group-label-btn:hover {
-            background: rgba(45,212,191,0.1);
-        }
-
-        /* ── 抽籤アニメーション ── */
-        .lottery-flash {
-            animation: lotteryFlash 0.3s ease-in-out infinite alternate;
-        }
-
-        @keyframes lotteryFlash {
-            0% { background: rgba(251,191,36,0.2); border-color: var(--accent-yellow); }
-            100% { background: rgba(251,191,36,0.4); border-color: #f59e0b; }
-        }
-
-        .lottery-selected {
-            background: rgba(244,114,182,0.2) !important;
-            border-color: var(--accent-pink) !important;
-            box-shadow: 0 0 16px rgba(244,114,182,0.3) !important;
-            animation: pulse-selected 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-selected {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.04); }
-        }
-
-        /* ── タイマー ── */
-        .timer-display {
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--accent-teal);
-            min-width: 70px;
-            text-align: center;
-        }
-
-        .timer-display.urgent {
-            color: var(--accent-pink);
-            animation: pulse-urgent 0.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse-urgent {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* ── モーダル ── */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-        }
-
-        .modal-overlay.show { display: flex; }
-
-        .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 1.75rem;
-            width: 100%;
-            max-width: 440px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            position: relative;
-        }
-
-        .modal-box::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-teal));
-            border-radius: 16px 16px 0 0;
-        }
-
-        .modal-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 1.25rem;
-            color: var(--text-primary);
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-secondary);
-            margin-bottom: 0.4rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            font-family: 'Noto Sans TC', sans-serif;
-            transition: border-color 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .form-select {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .form-select:focus { outline: none; border-color: var(--accent-blue); }
-
-        /* ── スコアボード ── */
-        .score-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.625rem 0.75rem;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            margin-bottom: 6px;
-        }
-
-        .rank-badge {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            background: rgba(79,142,247,0.2);
-            border: 1px solid rgba(79,142,247,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            font-family: 'Space Mono', monospace;
-            color: var(--accent-blue);
-            flex-shrink: 0;
-        }
-
-        .rank-1 { background: rgba(251,191,36,0.2); border-color: var(--accent-yellow); color: var(--accent-yellow); }
-        .rank-2 { background: rgba(156,163,175,0.2); border-color: #9ca3af; color: #9ca3af; }
-        .rank-3 { background: rgba(180,83,9,0.2); border-color: #d97706; color: #d97706; }
-
-        .score-value {
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            color: var(--accent-teal);
-            font-size: 0.95rem;
-        }
-
-        /* ── 作業スター ── */
-        .homework-stars {
-            font-size: 0.55rem;
-            line-height: 1;
-        }
-
-        /* ── ローディング ── */
-        #loadingScreen {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .loading-spinner {
-            width: 40px; height: 40px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .loading-text {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            font-family: 'Space Mono', monospace;
-        }
-
-        /* スクロールバー */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-        /* レスポンシブ */
-        @media (max-width: 768px) {
-            .student-panel { width: 200px; }
-            .seat { width: 72px; height: 52px; }
-            #studentList { grid-template-columns: repeat(3, 1fr); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教室座位系統</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc }
+    from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBAbSddZ6VsHjw-NjW77kxS8iuC5-cW_wY",
+    authDomain: "sjps-classroomseatchart.firebaseapp.com",
+    projectId: "sjps-classroomseatchart",
+    storageBucket: "sjps-classroomseatchart.firebasestorage.app",
+    messagingSenderId: "812781751431",
+    appId: "1:812781751431:web:3cad939d2c29fbbde67c22",
+    measurementId: "G-Q74G95W8P8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window._auth = auth;
+  window._db = db;
+  window._GoogleAuthProvider = GoogleAuthProvider;
+  window._signInWithPopup = signInWithPopup;
+  window._signOut = signOut;
+  window._onAuthStateChanged = onAuthStateChanged;
+  window._fsDoc = doc;
+  window._fsSetDoc = setDoc;
+  window._fsGetDoc = getDoc;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;height:100vh;overflow:hidden;}
+
+/* ── 登入 ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 50%,#fefce8 100%);}
+.login-card{background:white;border-radius:20px;padding:3rem 2.5rem;max-width:420px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.12);}
+.login-logo{font-size:3rem;margin-bottom:0.5rem;}
+.login-title{font-size:1.4rem;font-weight:700;color:#1e293b;margin-bottom:0.4rem;}
+.login-sub{font-size:0.9rem;color:#64748b;margin-bottom:2rem;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:0.875rem;background:white;border:2px solid #e2e8f0;border-radius:12px;font-size:0.95rem;font-weight:600;color:#374151;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.google-btn:hover{border-color:#93c5fd;box-shadow:0 4px 16px rgba(59,130,246,0.15);transform:translateY(-1px);}
+
+/* ── Loading ── */
+#loadingScreen{position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:1rem;}
+.spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── App Layout ── */
+#appScreen{display:none;height:100vh;flex-direction:column;}
+.app-header{background:white;border-bottom:1px solid #e2e8f0;padding:0.6rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+.header-left{display:flex;align-items:center;gap:0.75rem;}
+.logo-icon{font-size:1.4rem;}
+.logo-text{font-size:1rem;font-weight:700;color:#1e293b;}
+
+/* ── 班級 Tab Bar ── */
+.class-bar{background:white;border-bottom:1px solid #e2e8f0;padding:0 1.25rem;display:flex;align-items:center;gap:0;overflow-x:auto;flex-shrink:0;}
+.class-bar::-webkit-scrollbar{height:3px;}
+.class-bar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+.class-tab{display:flex;align-items:center;gap:6px;padding:0.6rem 1rem;font-size:0.85rem;font-weight:500;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
+.class-tab:hover{color:#3b82f6;background:#f8fafc;}
+.class-tab.active{color:#3b82f6;border-bottom-color:#3b82f6;font-weight:600;}
+.class-tab-rename{font-size:0.75rem;opacity:0;padding:1px 4px;border-radius:4px;background:#f1f5f9;border:1px solid #e2e8f0;cursor:pointer;transition:opacity 0.15s;}
+.class-tab.active .class-tab-rename{opacity:1;}
+.class-tab-rename:hover{background:#dbeafe;border-color:#93c5fd;}
+.add-class-btn{padding:0.5rem 0.875rem;font-size:0.8rem;font-weight:500;color:#3b82f6;background:transparent;border:1px dashed #93c5fd;border-radius:8px;cursor:pointer;margin-left:0.5rem;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
+.add-class-btn:hover{background:#eff6ff;}
+.sync-badge{margin-left:auto;padding-left:1rem;display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#94a3b8;flex-shrink:0;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;}
+.sync-dot.syncing{background:#f59e0b;animation:blink 0.6s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* ── Control Panel ── */
+.ctrl-panel{background:white;border-bottom:1px solid #e2e8f0;padding:0.6rem 1.25rem;display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0;}
+.divider{width:1px;height:22px;background:#e2e8f0;margin:0 2px;}
+
+/* ── Buttons ── */
+.btn{padding:0.35rem 0.875rem;border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;transition:all 0.15s;border:1px solid transparent;white-space:nowrap;}
+.btn-primary{background:#3b82f6;color:white;border-color:#3b82f6;}
+.btn-primary:hover{background:#2563eb;}
+.btn-primary.active{background:#1d4ed8;box-shadow:inset 0 2px 4px rgba(0,0,0,0.15);}
+.btn-outline{background:white;color:#374151;border-color:#d1d5db;}
+.btn-outline:hover{border-color:#93c5fd;color:#3b82f6;background:#f8fafc;}
+.btn-outline.active{background:#eff6ff;border-color:#3b82f6;color:#3b82f6;}
+.btn-green{background:#10b981;color:white;border-color:#10b981;}
+.btn-green:hover{background:#059669;}
+.btn-amber{background:#f59e0b;color:white;border-color:#f59e0b;}
+.btn-amber:hover{background:#d97706;}
+.btn-red{background:#ef4444;color:white;border-color:#ef4444;}
+.btn-red:hover{background:#dc2626;}
+.btn-gray{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
+.btn-gray:hover{background:#e2e8f0;}
+.btn-sm{padding:0.25rem 0.625rem;font-size:0.75rem;}
+
+/* ── Main Content ── */
+.main-content{display:flex;flex:1;overflow:hidden;}
+
+/* ── Student Panel ── */
+.student-panel{width:240px;flex-shrink:0;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden;}
+.panel-hdr{padding:0.75rem 0.875rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;}
+#studentList{flex:1;overflow-y:auto;padding:0.625rem;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;align-content:start;}
+#studentList::-webkit-scrollbar{width:4px;}
+#studentList::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+
+.s-chip{border-radius:8px;border:1.5px solid #e2e8f0;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 2px;cursor:move;transition:all 0.15s;aspect-ratio:1;text-align:center;}
+.s-chip:hover{border-color:#93c5fd;background:#eff6ff;transform:scale(1.05);}
+.s-chip.dragging{opacity:0.5;transform:rotate(4deg) scale(1.08);}
+.s-chip .sn{font-size:0.7rem;font-weight:700;color:#3b82f6;line-height:1;}
+.s-chip .nm{font-size:0.6rem;color:#374151;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.s-chip .gd{width:5px;height:5px;border-radius:50%;margin-top:2px;}
+.gd-m{background:#60a5fa;}
+.gd-f{background:#f472b6;}
+.s-chip.empty{border-style:dashed;cursor:pointer;}
+.s-chip.empty:hover{border-color:#6ee7b7;background:#f0fdf4;}
+
+/* ── Classroom Panel ── */
+.classroom-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc;}
+.classroom-toolbar{padding:0.625rem 1.25rem;background:white;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;}
+.mode-label{font-size:0.78rem;color:#94a3b8;font-weight:600;margin-right:auto;}
+
+/* ── Seat Area ── */
+#seatingArea{flex:1;overflow:auto;padding:1.25rem;}
+#seatingArea::-webkit-scrollbar{width:6px;height:6px;}
+#seatingArea::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+
+.podium{text-align:center;padding:0.625rem;background:#1e293b;color:white;border-radius:10px;margin-bottom:1.25rem;font-size:0.85rem;font-weight:700;letter-spacing:0.15em;}
+
+/* ── Normal/Exam Seat ── */
+.seat{background:white;border:1.5px solid #e2e8f0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative;flex-shrink:0;}
+.seat:hover{border-color:#93c5fd;box-shadow:0 2px 8px rgba(59,130,246,0.12);}
+.seat.occupied{background:#eff6ff;border-color:#bfdbfe;}
+.seat.occupied:hover{border-color:#3b82f6;box-shadow:0 4px 12px rgba(59,130,246,0.18);}
+.seat .seat-no{font-size:0.65rem;font-weight:700;color:#3b82f6;line-height:1;}
+.seat .seat-nm{font-size:0.78rem;font-weight:600;color:#1e293b;line-height:1.2;}
+.seat .seat-hw{font-size:0.55rem;color:#f59e0b;line-height:1;}
+.seat.drop-zone{border-color:#10b981!important;background:#f0fdf4!important;transform:scale(1.05);}
+
+/* ── Normal layout rows ── */
+.normal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 0.5rem;}
+.seat-group{display:flex;gap:8px;}
+
+/* ── Group layout ── */
+.group-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+.group-box{background:white;border:1.5px solid #e2e8f0;border-radius:12px;padding:1rem;position:relative;}
+.group-lbl-btn{position:absolute;top:-12px;left:12px;background:white;border:1.5px solid #bfdbfe;color:#3b82f6;padding:2px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;}
+.group-lbl-btn:hover{background:#eff6ff;}
+.group-inner{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:6px;}
+.group-row{display:flex;gap:8px;}
+
+/* ── Free Seat (自由配置) ── */
+#freeArea{flex:1;position:relative;background:
+  radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0);
+background-size:28px 28px;min-height:500px;}
+.free-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#94a3b8;font-size:0.9rem;text-align:center;pointer-events:none;user-select:none;}
+.free-seat{position:absolute;background:white;border:1.5px solid #c4b5fd;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:move;user-select:none;transition:box-shadow 0.15s;}
+.free-seat:hover{box-shadow:0 4px 16px rgba(139,92,246,0.2);border-color:#8b5cf6;}
+.free-seat.dragging-free{opacity:0.7;box-shadow:0 8px 24px rgba(0,0,0,0.15);}
+.free-seat .seat-no{font-size:0.65rem;font-weight:700;color:#7c3aed;}
+.free-seat .seat-nm{font-size:0.78rem;font-weight:600;color:#1e293b;}
+.free-seat .seat-hw{font-size:0.55rem;color:#f59e0b;}
+#freeArea.drop-active{background-color:rgba(139,92,246,0.04);}
+
+/* ── Lottery animations ── */
+.lottery-flash{animation:lflash 0.3s ease-in-out infinite alternate;}
+@keyframes lflash{0%{background:#fef3c7;border-color:#f59e0b;}100%{background:#fde68a;border-color:#d97706;}}
+.lottery-selected{background:#fee2e2!important;border-color:#ef4444!important;box-shadow:0 0 12px rgba(239,68,68,0.3)!important;animation:lpulse 1.5s ease-in-out infinite;}
+@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+
+/* ── Timer ── */
+.timer-display{font-size:1rem;font-weight:700;color:#1e293b;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
+.timer-display.urgent{color:#ef4444;animation:tpulse 0.5s ease-in-out infinite;}
+@keyframes tpulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:500;padding:1rem;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:white;border-radius:16px;padding:1.75rem;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-box::-webkit-scrollbar{width:4px;}
+.modal-box::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+.modal-title{font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:1.25rem;}
+.form-label{display:block;font-size:0.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;}
+.form-input{width:100%;padding:0.6rem 0.875rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;color:#1e293b;font-family:'Noto Sans TC',sans-serif;transition:border-color 0.15s;}
+.form-input:focus{outline:none;border-color:#3b82f6;}
+.form-select{width:100%;padding:0.6rem 0.875rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;color:#1e293b;cursor:pointer;}
+.form-select:focus{outline:none;border-color:#3b82f6;}
+.score-row{display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;background:#f8fafc;border-radius:8px;margin-bottom:5px;}
+.rank-badge{width:26px;height:26px;border-radius:50%;background:#dbeafe;color:#3b82f6;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;}
+.rank-1{background:#fef3c7;color:#d97706;}
+.rank-2{background:#f1f5f9;color:#64748b;}
+.rank-3{background:#fff7ed;color:#ea580c;}
+.history-entry{padding:0.625rem 0.75rem;background:#f8fafc;border-radius:8px;margin-bottom:5px;border-left:3px solid #e2e8f0;}
+.history-entry.pos{border-left-color:#10b981;}
+.history-entry.neg{border-left-color:#ef4444;}
+
+/* ── User info ── */
+.user-avatar{width:30px;height:30px;border-radius:50%;border:2px solid #bfdbfe;}
+.user-name{font-size:0.8rem;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.signout-btn{padding:0.3rem 0.75rem;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;font-size:0.78rem;cursor:pointer;}
+.signout-btn:hover{background:#fecaca;}
+
+/* ── Quick reason buttons ── */
+.qr-btn{padding:4px 8px;font-size:0.72rem;border-radius:6px;cursor:pointer;border:1px solid;transition:all 0.15s;}
+.qr-pos{background:#f0fdf4;color:#059669;border-color:#a7f3d0;}
+.qr-pos:hover{background:#dcfce7;}
+.qr-neg{background:#fef2f2;color:#dc2626;border-color:#fecaca;}
+.qr-neg:hover{background:#fee2e2;}
+.qr-neutral{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
+.qr-neutral:hover{background:#e2e8f0;}
+
+/* ── Homework ── */
+.hw-item{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fefce8;border:1px solid #fef08a;border-radius:7px;margin-bottom:5px;font-size:0.82rem;}
+
+/* ── Seat size slider ── */
+.size-slider{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:#e2e8f0;outline:none;cursor:pointer;}
+.size-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#3b82f6;cursor:pointer;}
+
+/* ── Rename inline input ── */
+.rename-input{border:1.5px solid #93c5fd;border-radius:6px;padding:2px 6px;font-size:0.82rem;font-family:'Noto Sans TC',sans-serif;outline:none;max-width:120px;}
+</style>
 </head>
 <body>
 
-    <!-- ローディング -->
-    <div id="loadingScreen">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">載入中...</div>
+<!-- Loading -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div style="font-size:0.875rem;color:#94a3b8;">載入中...</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">📚</div>
+    <div class="login-title">教室座位管理系統</div>
+    <div class="login-sub">教師專用版 · 雲端同步</div>
+    <button class="google-btn" id="googleLoginBtn">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.9 32.4 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.2 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.7 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.2 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.5-4.7L31 33.8C28.9 35.2 26.6 36 24 36c-5.3 0-9.8-3.6-11.3-8.5L6 32.3C9.4 38.8 16.2 44 24 44z"/>
+        <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2-2 3.8-3.7 5l6.5 5.5C41.7 34.9 44 29.9 44 24c0-1.3-.2-2.7-.4-4z"/>
+      </svg>
+      使用 Google 帳號登入
+    </button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none;height:100vh;display:none;flex-direction:column;">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <span class="logo-icon">📚</span>
+      <span class="logo-text">教室座位系統</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+      <img id="userAvatar" class="user-avatar" src="" alt="">
+      <span id="userName" class="user-name"></span>
+      <button class="signout-btn" id="signoutBtn">登出</button>
+    </div>
+  </header>
+
+  <!-- Class Tab Bar -->
+  <div class="class-bar" id="classBar">
+    <div id="classTabs" style="display:flex;align-items:stretch;gap:0;"></div>
+    <button class="add-class-btn" id="addClassBtn">＋ 新增班級</button>
+    <div class="sync-badge">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">已同步</span>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
+  <div class="ctrl-panel">
+    <!-- Modes -->
+    <button class="btn btn-primary active" id="modeNormal">一般座位</button>
+    <button class="btn btn-outline" id="modeGroup">小組座位</button>
+    <button class="btn btn-outline" id="modeExam">考試座位</button>
+    <button class="btn btn-outline" id="modeFree">自由座位</button>
+    <div class="divider"></div>
+    <!-- Views & Scores -->
+    <button class="btn btn-outline" id="studentViewBtn">學生視角</button>
+    <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
+    <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
+    <div class="divider"></div>
+    <!-- Timer -->
+    <button class="btn btn-green" id="timerBtn">⏱ 計時器</button>
+    <span class="timer-display" id="timerDisplay" style="display:none;">00:00</span>
+    <button class="btn btn-outline btn-sm" id="pauseTimerBtn" style="display:none;">暫停</button>
+    <button class="btn btn-gray btn-sm" id="stopTimerBtn" style="display:none;">停止</button>
+    <div class="divider"></div>
+    <!-- Lottery -->
+    <span style="font-size:0.78rem;color:#64748b;">抽</span>
+    <input type="number" id="lotteryCount" value="1" min="1" max="10"
+      style="width:40px;padding:3px 5px;border:1.5px solid #e2e8f0;border-radius:6px;text-align:center;font-size:0.8rem;color:#1e293b;">
+    <span style="font-size:0.78rem;color:#64748b;">人</span>
+    <button class="btn btn-amber" id="lotteryAllBtn">全部抽籤</button>
+    <button class="btn btn-primary" id="lotteryBoysBtn">男生抽籤</button>
+    <button class="btn btn-outline" id="lotteryGirlsBtn" style="color:#db2777;border-color:#fbcfe8;">女生抽籤</button>
+    <button class="btn btn-gray" id="clearSelBtn" style="display:none;">取消標記</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+
+    <!-- Student Panel -->
+    <div class="student-panel">
+      <div class="panel-hdr">
+        <span class="panel-title">學生名單</span>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-outline btn-sm" id="editStudentsBtn">編輯</button>
+          <button class="btn btn-outline btn-sm" id="exportBtn">匯出</button>
+        </div>
+      </div>
+      <div id="studentList"></div>
     </div>
 
-    <!-- ログイン画面 -->
-    <div id="loginScreen" style="display:none;">
-        <div class="login-card">
-            <div class="login-logo">📚 ClassRoom</div>
-            <div class="login-title">教師專用座位管理系統</div>
-            
-            <button class="google-btn" id="googleLoginBtn">
-                <svg width="20" height="20" viewBox="0 0 48 48">
-                    <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.9 32.4 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.2 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
-                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.7 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.2 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
-                    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.5-4.7L31 33.8C28.9 35.2 26.6 36 24 36c-5.3 0-9.8-3.6-11.3-8.5L6 32.3C9.4 38.8 16.2 44 24 44z"/>
-                    <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.7 2-2 3.8-3.7 5l6.5 5.5C41.7 34.9 44 29.9 44 24c0-1.3-.2-2.7-.4-4z"/>
-                </svg>
-                使用 Google 帳號登入
-            </button>
-
-            <div class="setup-notice">
-                ⚙️ <strong>首次使用請先設定 Firebase：</strong><br>
-                1. 前往 <a href="https://console.firebase.google.com/" target="_blank" style="color:inherit">console.firebase.google.com</a><br>
-                2. 建立新專案 → 新增網頁應用程式<br>
-                3. 啟用 Authentication（Google 登入）<br>
-                4. 啟用 Firestore Database<br>
-                5. 將設定貼入 <code>firebaseConfig</code>
-            </div>
-        </div>
+    <!-- Classroom -->
+    <div class="classroom-panel">
+      <div class="classroom-toolbar">
+        <span class="mode-label" id="modeLabel">一般座位模式</span>
+        <!-- Seat Size Slider -->
+        <span style="font-size:0.75rem;color:#94a3b8;">座位大小</span>
+        <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="160" value="100" style="width:90px;">
+        <button class="btn btn-primary btn-sm" id="randomBtn">🔀 隨機入座</button>
+        <button class="btn btn-gray btn-sm" id="resetBtn">重置座位</button>
+      </div>
+      <div id="seatingArea">
+        <!-- dynamically rendered -->
+      </div>
     </div>
 
-    <!-- メインアプリ -->
-    <div id="appScreen" style="display:none;">
+  </div>
+</div>
 
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-brand">
-                <div class="brand-icon">📚</div>
-                <div>
-                    <div class="brand-name">ClassRoom</div>
-                </div>
-            </div>
-            <div class="header-user">
-                <img id="userAvatar" class="user-avatar" src="" alt="">
-                <span id="userName" class="user-name"></span>
-                <button class="signout-btn" id="signoutBtn">登出</button>
-            </div>
-        </header>
+<!-- ═══════════════ MODALS ═══════════════ -->
 
-        <!-- 班級タブバー -->
-        <div class="class-selector-bar">
-            <div id="classTabs" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
-            <button class="add-class-btn" id="addClassBtn">＋ 新增班級</button>
-            <div class="sync-status">
-                <div class="sync-dot" id="syncDot"></div>
-                <span id="syncText" style="color:var(--text-secondary); font-size:0.75rem;">已同步</span>
-            </div>
-        </div>
-
-        <!-- コントロールパネル -->
-        <div class="control-panel">
-            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-                <!-- 座席モード -->
-                <div style="display:flex; gap:6px;">
-                    <button class="btn btn-blue active" id="normalMode">一般座位</button>
-                    <button class="btn btn-gray" id="groupMode">小組座位</button>
-                    <button class="btn btn-gray" id="examMode">考試座位</button>
-                </div>
-
-                <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
-
-                <!-- 機能ボタン -->
-                <button class="btn btn-teal" id="studentViewBtn">學生視角</button>
-                <button class="btn btn-blue" id="showScoresBtn">個人積分</button>
-                <button class="btn btn-blue" id="showGroupScoresBtn">小組積分</button>
-
-                <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
-
-                <!-- タイマー -->
-                <button class="btn btn-teal" id="timerBtn">⏱ 計時器</button>
-                <span class="timer-display hidden" id="timerDisplay">00:00</span>
-                <button class="btn btn-yellow hidden" id="pauseTimer">暫停</button>
-                <button class="btn btn-pink hidden" id="stopTimer">停止</button>
-
-                <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
-
-                <!-- 抽籤 -->
-                <span style="font-size:0.78rem; color:var(--text-secondary);">抽</span>
-                <input type="number" id="lotteryCount" value="1" min="1" max="10"
-                    style="width:44px; padding:4px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); text-align:center; font-size:0.8rem;">
-                <span style="font-size:0.78rem; color:var(--text-secondary);">人</span>
-                <button class="btn btn-yellow" id="lotteryAll">全部抽籤</button>
-                <button class="btn btn-blue" id="lotteryBoys">男生抽籤</button>
-                <button class="btn btn-pink" id="lotteryGirls">女生抽籤</button>
-                <button class="btn btn-gray hidden" id="clearSelection">取消標記</button>
-            </div>
-        </div>
-
-        <!-- メインコンテンツ -->
-        <div class="main-content">
-
-            <!-- 学生パネル -->
-            <div class="student-panel">
-                <div class="panel-header">
-                    <span class="panel-title">學生名單</span>
-                    <div style="display:flex; gap:6px;">
-                        <button class="btn btn-teal" id="editStudentsBtn" style="padding:3px 8px; font-size:0.7rem;">編輯</button>
-                        <button class="btn btn-blue" id="exportBtn" style="padding:3px 8px; font-size:0.7rem;">匯出</button>
-                    </div>
-                </div>
-                <div id="studentList"></div>
-            </div>
-
-            <!-- 教室パネル -->
-            <div class="classroom-panel">
-                <div class="classroom-toolbar">
-                    <span style="font-size:0.8rem; color:var(--text-secondary); font-family:'Space Mono',monospace;" id="currentModeLabel">一般座位模式</span>
-                    <button class="btn btn-teal" id="randomSeatingBtn" style="margin-left:auto;">🔀 隨機入座</button>
-                    <button class="btn btn-pink" id="resetSeatsBtn">重置座位</button>
-                </div>
-                <div id="seatingArea"></div>
-            </div>
-
-        </div>
+<!-- Add Class -->
+<div class="modal-overlay" id="addClassModal">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">新增班級</div>
+    <div style="margin-bottom:1rem;">
+      <label class="form-label">班級名稱</label>
+      <input type="text" class="form-input" id="newClassName" placeholder="例：三年一班、501">
     </div>
-
-    <!-- ═══ モーダル群 ═══ -->
-
-    <!-- 班級追加モーダル -->
-    <div class="modal-overlay" id="addClassModal">
-        <div class="modal-box" style="max-width:360px;">
-            <div class="modal-title">新增班級</div>
-            <div style="margin-bottom:1rem;">
-                <label class="form-label">班級名稱</label>
-                <input type="text" id="newClassName" class="form-input" placeholder="例：三年一班、301">
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-blue" id="confirmAddClass" style="flex:1; padding:0.625rem;">確認新增</button>
-                <button class="btn btn-gray" id="cancelAddClass" style="padding:0.625rem 1rem;">取消</button>
-            </div>
-        </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" id="confirmAddClass" style="flex:1;padding:0.6rem;">確認新增</button>
+      <button class="btn btn-gray" id="cancelAddClass" style="padding:0.6rem 1rem;">取消</button>
     </div>
+  </div>
+</div>
 
-    <!-- 학생 편집 モーダル -->
-    <div class="modal-overlay" id="editStudentModal">
-        <div class="modal-box" style="max-width:380px;">
-            <div class="modal-title" id="editModalTitle">編輯學生</div>
-            <div style="display:flex; flex-direction:column; gap:0.875rem; margin-bottom:1.25rem;">
-                <div>
-                    <label class="form-label">座號</label>
-                    <input type="number" id="editSeatNum" class="form-input">
-                </div>
-                <div>
-                    <label class="form-label">姓名</label>
-                    <input type="text" id="editName" class="form-input">
-                </div>
-                <div>
-                    <label class="form-label">性別</label>
-                    <select id="editGender" class="form-select">
-                        <option value="male">男生 🔵</option>
-                        <option value="female">女生 🔴</option>
-                    </select>
-                </div>
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-blue" id="saveStudentBtn" style="flex:1; padding:0.625rem;">儲存</button>
-                <button class="btn btn-pink" id="deleteStudentBtn" style="padding:0.625rem 1rem;">刪除</button>
-                <button class="btn btn-gray" id="cancelEditStudent" style="padding:0.625rem 1rem;">取消</button>
-            </div>
-        </div>
+<!-- Rename Class -->
+<div class="modal-overlay" id="renameClassModal">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">修改班級名稱</div>
+    <div style="margin-bottom:1rem;">
+      <label class="form-label">新名稱</label>
+      <input type="text" class="form-input" id="renameClassInput" placeholder="輸入新班級名稱">
     </div>
-
-    <!-- 學生設定モーダル（ダブルクリック） -->
-    <div class="modal-overlay" id="studentSettingsModal">
-        <div class="modal-box">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:1.25rem;">
-                <div>
-                    <div class="modal-title" style="margin-bottom:2px;" id="settingsName"></div>
-                    <div style="font-family:'Space Mono',monospace; font-size:1.1rem; color:var(--accent-teal);" id="settingsScore"></div>
-                </div>
-            </div>
-
-            <!-- 積分調整 -->
-            <div style="background:var(--bg-secondary); border-radius:10px; padding:1rem; margin-bottom:1rem;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.75rem; justify-content:center;">
-                    <input type="number" id="settingsScoreAmt" value="1" min="1" max="10"
-                        style="width:48px; text-align:center; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:4px;">
-                    <span style="color:var(--text-secondary); font-size:0.8rem;">分</span>
-                </div>
-                <div style="display:flex; gap:6px; justify-content:center; margin-bottom:0.625rem;">
-                    <button class="btn btn-gray settings-qs" data-s="1" style="padding:3px 8px; font-size:0.7rem;">1分</button>
-                    <button class="btn btn-gray settings-qs" data-s="2" style="padding:3px 8px; font-size:0.7rem;">2分</button>
-                    <button class="btn btn-gray settings-qs" data-s="3" style="padding:3px 8px; font-size:0.7rem;">3分</button>
-                    <button class="btn btn-gray settings-qs" data-s="5" style="padding:3px 8px; font-size:0.7rem;">5分</button>
-                </div>
-                <div style="display:flex; gap:8px; justify-content:center; margin-bottom:0.75rem;">
-                    <button class="btn btn-teal" id="settingsAddBtn" style="padding:0.5rem 1.25rem; font-size:0.9rem;">＋加分</button>
-                    <button class="btn btn-pink" id="settingsSubBtn" style="padding:0.5rem 1.25rem; font-size:0.9rem;">－扣分</button>
-                </div>
-                <!-- 快速原因 -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:0.625rem;">
-                    <button class="btn btn-teal settings-reason" data-r="回答問題" style="padding:4px 8px; font-size:0.72rem;">回答問題</button>
-                    <button class="btn btn-teal settings-reason" data-r="幫老師忙" style="padding:4px 8px; font-size:0.72rem;">幫老師忙</button>
-                    <button class="btn btn-pink settings-reason" data-r="上課聊天" style="padding:4px 8px; font-size:0.72rem;">上課聊天</button>
-                    <button class="btn btn-pink settings-reason" data-r="作業沒寫" style="padding:4px 8px; font-size:0.72rem;">作業沒寫</button>
-                </div>
-                <textarea id="settingsReason" class="form-input" rows="2" placeholder="原因說明..." style="resize:none; font-size:0.82rem;"></textarea>
-                <button class="btn btn-blue" id="settingsConfirmScore" style="width:100%; padding:0.5rem; margin-top:0.625rem;">確認積分調整</button>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:1rem;">
-                <button class="btn btn-blue" id="settingsHistoryBtn" style="font-size:0.75rem; padding:0.5rem;">獎懲記錄</button>
-                <button class="btn btn-gray" id="settingsEditBtn" style="font-size:0.75rem; padding:0.5rem;">編輯資料</button>
-                <button class="btn btn-yellow" id="settingsHomeworkBtn" style="font-size:0.75rem; padding:0.5rem;">作業管理</button>
-            </div>
-
-            <button class="btn btn-gray" id="closeSettingsModal" style="width:100%; padding:0.5rem;">關閉</button>
-        </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" id="confirmRename" style="flex:1;padding:0.6rem;">確認</button>
+      <button class="btn btn-red" id="deleteClassBtn" style="padding:0.6rem 1rem;">刪除班級</button>
+      <button class="btn btn-gray" id="cancelRename" style="padding:0.6rem 1rem;">取消</button>
     </div>
+  </div>
+</div>
 
-    <!-- 個人積分排行 -->
-    <div class="modal-overlay" id="scoresModal">
-        <div class="modal-box">
-            <div class="modal-title">個人積分排行榜</div>
-            <div id="scoresList" style="max-height:360px; overflow-y:auto;"></div>
-            <div style="display:flex; gap:8px; margin-top:1rem;">
-                <button class="btn btn-pink" id="resetAllScoresBtn" style="padding:0.5rem 1rem;">重置全部積分</button>
-                <button class="btn btn-gray" id="closeScoresModal" style="flex:1; padding:0.5rem;">關閉</button>
-            </div>
-        </div>
+<!-- Edit Student -->
+<div class="modal-overlay" id="editStudentModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-title" id="editStudentTitle">編輯學生</div>
+    <div style="display:flex;flex-direction:column;gap:0.875rem;margin-bottom:1.25rem;">
+      <div><label class="form-label">座號</label><input type="number" class="form-input" id="editSeatNum"></div>
+      <div><label class="form-label">姓名</label><input type="text" class="form-input" id="editName"></div>
+      <div>
+        <label class="form-label">性別</label>
+        <select class="form-select" id="editGender">
+          <option value="male">男生 🔵</option>
+          <option value="female">女生 🔴</option>
+        </select>
+      </div>
     </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" id="saveStudentBtn" style="flex:1;padding:0.6rem;">儲存</button>
+      <button class="btn btn-red" id="deleteStudentBtn" style="padding:0.6rem 1rem;">刪除</button>
+      <button class="btn btn-gray" id="cancelEditStudent" style="padding:0.6rem 1rem;">取消</button>
+    </div>
+  </div>
+</div>
 
-    <!-- 小組積分 -->
-    <div class="modal-overlay" id="groupScoresModal">
-        <div class="modal-box">
-            <div class="modal-title">小組積分排行榜</div>
-            <div id="groupScoresList" style="max-height:360px; overflow-y:auto;"></div>
-            <div style="display:flex; gap:8px; margin-top:1rem;">
-                <button class="btn btn-pink" id="resetGroupScoresBtn" style="padding:0.5rem 1rem;">重置小組積分</button>
-                <button class="btn btn-gray" id="closeGroupScoresModal" style="flex:1; padding:0.5rem;">關閉</button>
-            </div>
-        </div>
-    </div>
+<!-- Bulk Edit -->
+<div class="modal-overlay" id="bulkEditModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-title">編輯學生名單</div>
+    <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:0.875rem;">點擊學生可編輯 · 空格可新增</div>
+    <div id="bulkEditList" style="max-height:420px;overflow-y:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>
+    <button class="btn btn-gray" id="closeBulkEdit" style="width:100%;padding:0.6rem;margin-top:1rem;">關閉</button>
+  </div>
+</div>
 
-    <!-- 小組加分モーダル -->
-    <div class="modal-overlay" id="groupScoreModal">
-        <div class="modal-box" style="max-width:380px;">
-            <div class="modal-title" id="groupModalTitle">第1組 積分調整</div>
-            <div style="display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:0.75rem;">
-                <input type="number" id="groupScoreAmt" value="1" min="1" max="10"
-                    style="width:48px; text-align:center; background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:4px;">
-                <span style="color:var(--text-secondary); font-size:0.8rem;">分</span>
-            </div>
-            <div style="display:flex; gap:8px; justify-content:center; margin-bottom:0.875rem;">
-                <button class="btn btn-teal" id="addGroupScoreBtn" style="padding:0.5rem 1.5rem;">＋加分</button>
-                <button class="btn btn-pink" id="subtractGroupScoreBtn" style="padding:0.5rem 1.5rem;">－扣分</button>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:0.625rem;">
-                <button class="btn btn-teal group-reason-btn" data-r="討論積極" style="font-size:0.72rem; padding:5px;">討論積極</button>
-                <button class="btn btn-teal group-reason-btn" data-r="合作良好" style="font-size:0.72rem; padding:5px;">合作良好</button>
-                <button class="btn btn-pink group-reason-btn" data-r="討論吵鬧" style="font-size:0.72rem; padding:5px;">討論吵鬧</button>
-                <button class="btn btn-pink group-reason-btn" data-r="不參與討論" style="font-size:0.72rem; padding:5px;">不參與討論</button>
-            </div>
-            <textarea id="groupScoreReason" class="form-input" rows="2" placeholder="原因說明..." style="resize:none; margin-bottom:0.875rem;"></textarea>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-blue" id="confirmGroupScore" style="flex:1; padding:0.5rem;">確認</button>
-                <button class="btn btn-gray" id="cancelGroupScore" style="padding:0.5rem 1rem;">取消</button>
-            </div>
-        </div>
+<!-- Student Settings -->
+<div class="modal-overlay" id="studentSettingsModal">
+  <div class="modal-box" style="max-width:440px;">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1.25rem;">
+      <div class="modal-title" style="margin-bottom:0;" id="settingsName"></div>
+      <div style="font-size:1.1rem;font-weight:700;color:#3b82f6;" id="settingsScore"></div>
     </div>
+    <!-- Score adjust -->
+    <div style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:0.875rem;">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:0.6rem;">
+        <input type="number" id="settingsAmt" value="1" min="1" max="10"
+          style="width:46px;text-align:center;border:1.5px solid #e2e8f0;border-radius:7px;padding:4px;font-size:0.9rem;color:#1e293b;">
+        <span style="color:#64748b;font-size:0.8rem;">分</span>
+      </div>
+      <div style="display:flex;gap:5px;justify-content:center;margin-bottom:0.625rem;">
+        <button class="qr-neutral settings-qs" data-s="1">1</button>
+        <button class="qr-neutral settings-qs" data-s="2">2</button>
+        <button class="qr-neutral settings-qs" data-s="3">3</button>
+        <button class="qr-neutral settings-qs" data-s="5">5</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:0.75rem;">
+        <button class="btn btn-green" id="settingsAddBtn" style="padding:0.5rem 1.5rem;">＋ 加分</button>
+        <button class="btn btn-red" id="settingsSubBtn" style="padding:0.5rem 1.5rem;">－ 扣分</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:0.5rem;">
+        <button class="qr-btn qr-pos settings-reason" data-r="回答問題">回答問題</button>
+        <button class="qr-btn qr-pos settings-reason" data-r="幫老師忙">幫老師忙</button>
+        <button class="qr-btn qr-neg settings-reason" data-r="上課聊天">上課聊天</button>
+        <button class="qr-btn qr-neg settings-reason" data-r="作業沒寫">作業沒寫</button>
+      </div>
+      <textarea id="settingsReason" class="form-input" rows="2" placeholder="原因說明..." style="resize:none;font-size:0.82rem;"></textarea>
+      <button class="btn btn-primary" id="settingsConfirmBtn" style="width:100%;padding:0.5rem;margin-top:0.625rem;">確認積分調整</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:0.875rem;">
+      <button class="btn btn-outline btn-sm" id="settingsHistoryBtn">獎懲記錄</button>
+      <button class="btn btn-outline btn-sm" id="settingsEditBtn">編輯資料</button>
+      <button class="btn btn-amber btn-sm" id="settingsHomeworkBtn">作業管理</button>
+    </div>
+    <button class="btn btn-gray" id="closeSettingsBtn" style="width:100%;padding:0.5rem;">關閉</button>
+  </div>
+</div>
 
-    <!-- タイマー設定 -->
-    <div class="modal-overlay" id="timerModal">
-        <div class="modal-box" style="max-width:360px;">
-            <div class="modal-title">設定倒數計時器</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:1rem;">
-                <div>
-                    <label class="form-label">時</label>
-                    <input type="number" id="timerH" value="0" min="0" max="23" class="form-input" style="text-align:center;">
-                </div>
-                <div>
-                    <label class="form-label">分</label>
-                    <input type="number" id="timerM" value="5" min="0" max="59" class="form-input" style="text-align:center;">
-                </div>
-                <div>
-                    <label class="form-label">秒</label>
-                    <input type="number" id="timerS" value="0" min="0" max="59" class="form-input" style="text-align:center;">
-                </div>
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:1rem;">
-                <button class="btn btn-gray quick-time" data-m="1" style="font-size:0.75rem;">1分鐘</button>
-                <button class="btn btn-gray quick-time" data-m="5" style="font-size:0.75rem;">5分鐘</button>
-                <button class="btn btn-gray quick-time" data-m="10" style="font-size:0.75rem;">10分鐘</button>
-                <button class="btn btn-gray quick-time" data-m="15" style="font-size:0.75rem;">15分鐘</button>
-                <button class="btn btn-gray quick-time" data-m="30" style="font-size:0.75rem;">30分鐘</button>
-                <button class="btn btn-gray quick-time" data-m="45" style="font-size:0.75rem;">45分鐘</button>
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-teal" id="startTimerBtn" style="flex:1; padding:0.625rem;">開始計時</button>
-                <button class="btn btn-gray" id="cancelTimerBtn" style="padding:0.625rem 1rem;">取消</button>
-            </div>
-        </div>
+<!-- Scores -->
+<div class="modal-overlay" id="scoresModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title">個人積分排行榜</div>
+    <div id="scoresList" style="max-height:380px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn btn-red" id="resetAllScoresBtn" style="padding:0.5rem 0.875rem;">重置全部</button>
+      <button class="btn btn-gray" id="closeScoresBtn" style="flex:1;padding:0.5rem;">關閉</button>
     </div>
+  </div>
+</div>
 
-    <!-- 時間到モーダル -->
-    <div class="modal-overlay" id="timeUpModal">
-        <div class="modal-box" style="text-align:center; max-width:320px;">
-            <div style="font-size:3.5rem; margin-bottom:0.75rem;">⏰</div>
-            <div class="modal-title" style="color:var(--accent-pink); font-size:1.4rem;">時間到囉！</div>
-            <button class="btn btn-pink" id="closeTimeUpBtn" style="width:100%; padding:0.75rem; margin-top:1rem; font-size:1rem;">確認</button>
-        </div>
+<!-- Group Scores -->
+<div class="modal-overlay" id="groupScoresModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title">小組積分排行榜</div>
+    <div id="groupScoresList" style="max-height:380px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn btn-red" id="resetGroupScoresBtn" style="padding:0.5rem 0.875rem;">重置全部</button>
+      <button class="btn btn-gray" id="closeGroupScoresBtn" style="flex:1;padding:0.5rem;">關閉</button>
     </div>
+  </div>
+</div>
 
-    <!-- 積分歴史モーダル -->
-    <div class="modal-overlay" id="historyModal">
-        <div class="modal-box">
-            <div class="modal-title" id="historyTitle"></div>
-            <div id="historyList" style="max-height:360px; overflow-y:auto;"></div>
-            <button class="btn btn-gray" id="closeHistoryBtn" style="width:100%; padding:0.5rem; margin-top:1rem;">關閉</button>
-        </div>
+<!-- Group Score Adjust -->
+<div class="modal-overlay" id="groupScoreModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-title" id="groupModalTitle">第1組 積分調整</div>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:0.75rem;">
+      <input type="number" id="groupScoreAmt" value="1" min="1" max="10"
+        style="width:46px;text-align:center;border:1.5px solid #e2e8f0;border-radius:7px;padding:4px;font-size:0.9rem;">
+      <span style="color:#64748b;font-size:0.8rem;">分</span>
     </div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:0.75rem;">
+      <button class="btn btn-green" id="addGroupBtn" style="padding:0.5rem 1.5rem;">＋ 加分</button>
+      <button class="btn btn-red" id="subGroupBtn" style="padding:0.5rem 1.5rem;">－ 扣分</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:0.625rem;">
+      <button class="qr-btn qr-pos group-reason" data-r="討論積極">討論積極</button>
+      <button class="qr-btn qr-pos group-reason" data-r="合作良好">合作良好</button>
+      <button class="qr-btn qr-neg group-reason" data-r="討論吵鬧">討論吵鬧</button>
+      <button class="qr-btn qr-neg group-reason" data-r="不參與討論">不參與討論</button>
+    </div>
+    <textarea id="groupReason" class="form-input" rows="2" placeholder="原因說明..." style="resize:none;margin-bottom:0.875rem;"></textarea>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" id="confirmGroupScore" style="flex:1;padding:0.6rem;">確認</button>
+      <button class="btn btn-gray" id="cancelGroupScore" style="padding:0.6rem 1rem;">取消</button>
+    </div>
+  </div>
+</div>
 
-    <!-- 作業管理 -->
-    <div class="modal-overlay" id="homeworkModal">
-        <div class="modal-box">
-            <div class="modal-title" id="homeworkTitle">作業管理</div>
-            <div id="homeworkList" style="max-height:200px; overflow-y:auto; margin-bottom:1rem; background:var(--bg-secondary); border-radius:8px; padding:0.75rem;"></div>
-            <div style="display:flex; gap:8px; margin-bottom:1rem;">
-                <input type="text" id="newHomeworkInput" class="form-input" placeholder="作業名稱（例：數學p.25）" style="flex:1;">
-                <button class="btn btn-blue" id="addHomeworkBtn" style="padding:0.5rem 0.875rem;">新增</button>
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-teal" id="saveHomeworkBtn" style="flex:1; padding:0.5rem;">儲存</button>
-                <button class="btn btn-gray" id="closeHomeworkBtn" style="padding:0.5rem 1rem;">關閉</button>
-            </div>
-        </div>
+<!-- Timer Modal -->
+<div class="modal-overlay" id="timerModal">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">設定倒數計時器</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0.875rem;">
+      <div><label class="form-label">時</label><input type="number" class="form-input" id="timerH" value="0" min="0" max="23" style="text-align:center;"></div>
+      <div><label class="form-label">分</label><input type="number" class="form-input" id="timerM" value="5" min="0" max="59" style="text-align:center;"></div>
+      <div><label class="form-label">秒</label><input type="number" class="form-input" id="timerS" value="0" min="0" max="59" style="text-align:center;"></div>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:0.875rem;">
+      <button class="qr-btn qr-neutral quick-time" data-m="1">1分鐘</button>
+      <button class="qr-btn qr-neutral quick-time" data-m="5">5分鐘</button>
+      <button class="qr-btn qr-neutral quick-time" data-m="10">10分鐘</button>
+      <button class="qr-btn qr-neutral quick-time" data-m="15">15分鐘</button>
+      <button class="qr-btn qr-neutral quick-time" data-m="30">30分鐘</button>
+      <button class="qr-btn qr-neutral quick-time" data-m="45">45分鐘</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-green" id="startTimerBtn" style="flex:1;padding:0.6rem;">開始計時</button>
+      <button class="btn btn-gray" id="cancelTimerBtn" style="padding:0.6rem 1rem;">取消</button>
+    </div>
+  </div>
+</div>
 
-    <!-- 全員編輯モーダル -->
-    <div class="modal-overlay" id="bulkEditModal">
-        <div class="modal-box" style="max-width:500px;">
-            <div class="modal-title">編輯學生名單</div>
-            <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.75rem;">
-                點擊學生可編輯，空白格可新增學生
-            </div>
-            <div id="bulkEditList" style="max-height:400px; overflow-y:auto; display:grid; grid-template-columns:repeat(5,1fr); gap:8px;"></div>
-            <button class="btn btn-gray" id="closeBulkEdit" style="width:100%; padding:0.5rem; margin-top:1rem;">關閉</button>
-        </div>
+<!-- Time Up -->
+<div class="modal-overlay" id="timeUpModal">
+  <div class="modal-box" style="max-width:300px;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:0.75rem;">⏰</div>
+    <div class="modal-title" style="color:#ef4444;justify-content:center;display:flex;">時間到囉！</div>
+    <button class="btn btn-red" id="closeTimeUpBtn" style="width:100%;padding:0.75rem;margin-top:1rem;">確認</button>
+  </div>
+</div>
+
+<!-- History -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-title" id="historyTitle"></div>
+    <div id="historyList" style="max-height:380px;overflow-y:auto;"></div>
+    <button class="btn btn-gray" id="closeHistoryBtn" style="width:100%;padding:0.5rem;margin-top:1rem;">關閉</button>
+  </div>
+</div>
+
+<!-- Homework -->
+<div class="modal-overlay" id="homeworkModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title" id="homeworkTitle"></div>
+    <div id="homeworkList" style="max-height:200px;overflow-y:auto;margin-bottom:0.875rem;min-height:48px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+      <input type="text" class="form-input" id="newHwInput" placeholder="作業名稱（例：數學p.25）" style="flex:1;">
+      <button class="btn btn-primary" id="addHwBtn" style="padding:0.5rem 0.875rem;">新增</button>
     </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-green" id="saveHwBtn" style="flex:1;padding:0.5rem;">儲存</button>
+      <button class="btn btn-gray" id="closeHwBtn" style="padding:0.5rem 1rem;">關閉</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-//  ClassRoom System - Multi-teacher Firebase Version
-// ═══════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════════════════════════════
+//  ClassroomApp  ·  Multi-class · Firebase · White Theme
+// ═══════════════════════════════════════════════════════════════
 class ClassroomApp {
-    constructor() {
-        this.auth = null;
-        this.db = null;
-        this.currentUser = null;
-        this.currentClassId = null;
-        this.classes = {};            // { classId: { name, students, seats, scores, ... } }
-        this.currentMode = 'normal';
-        this.isStudentView = false;
-        this.isSaving = false;
-        this.saveTimer = null;
-        this.editingStudentId = null;
-        this.currentSettingsStudentId = null;
-        this.currentGroupNumber = null;
-        this.selectedSettingsScoreType = null;
-        this.selectedGroupScoreType = null;
-        this.isLotteryRunning = false;
-        this.flashIntervals = [];
-        this.selectedStudents = [];
-        this.timerInterval = null;
-        this.timerRemaining = 0;
-        this.timerRunning = false;
-        this.timerPaused = false;
-        this.homeworkNotes = {};      // { studentId: [{name, date}] }
+  constructor() {
+    this.user = null;
+    this.data = null;          // { classes:{}, homeworkNotes:{} }
+    this.currentClassId = null;
+    this.currentMode = 'normal'; // normal | group | exam | free
+    this.isStudentView = false;
+    this.seatSize = 100;       // px  (動態調整)
+    this.editingStudentId = null;
+    this.currentSettingsSid = null;
+    this.currentGroupNum = null;
+    this.renamingClassId = null;
+    this.flashIntervals = [];
+    this.selectedStudents = [];
+    this.isLotteryRunning = false;
+    this.timerInterval = null;
+    this.timerRemaining = 0;
+    this.timerPaused = false;
+    this.saveTimer = null;
 
-        this._waitForFirebase();
-    }
+    // Free seat drag state
+    this.freeDrag = null;
 
-    _waitForFirebase() {
-        if (window._firebaseAuth) {
-            this._init();
-        } else {
-            window.addEventListener('firebaseReady', () => this._init());
-        }
-    }
+    if (window._auth) this._init();
+    else window.addEventListener('firebaseReady', () => this._init());
+  }
 
-    async _init() {
-        this.auth = window._firebaseAuth;
-        this.db = window._firebaseDb;
-
-        window._onAuthStateChanged(this.auth, async (user) => {
-            document.getElementById('loadingScreen').style.display = 'none';
-            if (user) {
-                this.currentUser = user;
-                this._showApp(user);
-                await this._loadUserData();
-            } else {
-                this.currentUser = null;
-                this._showLogin();
-            }
-        });
-
-        this._bindGlobalEvents();
-    }
-
-    _showLogin() {
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('appScreen').style.display = 'none';
-    }
-
-    _showApp(user) {
+  _init() {
+    window._onAuthStateChanged(window._auth, async user => {
+      document.getElementById('loadingScreen').style.display = 'none';
+      if (user) {
+        this.user = user;
         document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('appScreen').style.display = 'block';
+        const app = document.getElementById('appScreen');
+        app.style.display = 'flex';
         document.getElementById('userAvatar').src = user.photoURL || '';
         document.getElementById('userName').textContent = user.displayName || user.email;
+        await this._load();
+      } else {
+        this.user = null;
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
+    });
+    this._bindEvents();
+  }
+
+  // ── Firebase ────────────────────────────────────────────────
+  async _load() {
+    try {
+      const ref = window._fsDoc(window._db, 'teachers', this.user.uid);
+      const snap = await window._fsGetDoc(ref);
+      if (snap.exists()) {
+        this.data = snap.data();
+        if (!this.data.classes) this.data.classes = {};
+        if (!this.data.homeworkNotes) this.data.homeworkNotes = {};
+      } else {
+        this.data = { classes: { class1: this._newClass('我的班級') }, homeworkNotes: {} };
+        await this._save();
+      }
+      const ids = Object.keys(this.data.classes);
+      this.currentClassId = ids[0] || null;
+      this._renderTabs();
+      this._renderAll();
+    } catch(e) {
+      console.error(e);
+      this._setSyncStatus('error');
     }
+  }
 
-    // ─── Firebase ───────────────────────────────────────
+  _scheduleSave() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => this._save(), 1500);
+  }
 
-    async _loadUserData() {
-        try {
-            const ref = window._firestoreDoc(this.db, 'teachers', this.currentUser.uid);
-            const snap = await window._firestoreGetDoc(ref);
+  async _save() {
+    if (!this.user) return;
+    this._setSyncStatus('syncing');
+    try {
+      const ref = window._fsDoc(window._db, 'teachers', this.user.uid);
+      await window._fsSetDoc(ref, { ...this.data, uid: this.user.uid, updatedAt: Date.now() });
+      this._setSyncStatus('synced');
+    } catch(e) { this._setSyncStatus('error'); }
+  }
 
-            if (snap.exists()) {
-                const data = snap.data();
-                this.classes = data.classes || {};
-                this.homeworkNotes = data.homeworkNotes || {};
-            } else {
-                // 新規ユーザー：デフォルトクラスを作成
-                this.classes = {
-                    'class_default': this._createDefaultClass('我的班級')
-                };
-                this.homeworkNotes = {};
-                await this._saveToFirebase();
-            }
+  _setSyncStatus(s) {
+    const dot = document.getElementById('syncDot');
+    const txt = document.getElementById('syncText');
+    dot.className = 'sync-dot' + (s==='syncing'?' syncing':'');
+    if (s==='syncing') { dot.style.background=''; txt.textContent='同步中...'; }
+    else if (s==='synced') { dot.style.background='#22c55e'; txt.textContent='已同步'; }
+    else { dot.style.background='#ef4444'; txt.textContent='同步失敗'; }
+  }
 
-            // 最初のクラスを選択
-            const classIds = Object.keys(this.classes);
-            this.currentClassId = classIds[0] || null;
+  // ── Data helpers ─────────────────────────────────────────────
+  _newClass(name) {
+    const students = {};
+    for (let i=1;i<=15;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'male'};
+    for (let i=21;i<=35;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'female'};
+    return { name, students, normalSeats:{}, groupSeats:{}, examSeats:{}, freeSeats:{},
+             scores:{}, scoreHistory:{}, groupScores:{}, groupScoreHistory:{} };
+  }
 
-            this._renderClassTabs();
-            this._renderAll();
-        } catch (err) {
-            console.error('載入資料失敗:', err);
-            this._showOfflineMode();
-        }
-    }
+  get _cls() { return this.data.classes[this.currentClassId] || {}; }
+  get _students() { return this._cls.students || {}; }
+  get _seats() {
+    const c = this._cls;
+    if (this.currentMode==='normal') return c.normalSeats||{};
+    if (this.currentMode==='group')  return c.groupSeats||{};
+    if (this.currentMode==='exam')   return c.examSeats||{};
+    if (this.currentMode==='free')   return c.freeSeats||{};
+    return {};
+  }
+  _setSeats(s) {
+    const c = this.data.classes[this.currentClassId];
+    if (this.currentMode==='normal') c.normalSeats=s;
+    else if (this.currentMode==='group')  c.groupSeats=s;
+    else if (this.currentMode==='exam')   c.examSeats=s;
+    else if (this.currentMode==='free')   c.freeSeats=s;
+  }
+  get _scores() { return this._cls.scores||{}; }
+  get _hw() { return this.data.homeworkNotes||{}; }
+  _hwCount(sid) { return (this._hw[sid]||[]).length; }
 
-    _createDefaultClass(name) {
-        const students = {};
-        for (let i = 1; i <= 15; i++) {
-            students[`s${i}`] = { id: `s${i}`, seatNumber: i, name: `學生${i}`, gender: 'male' };
-        }
-        for (let i = 21; i <= 35; i++) {
-            students[`s${i}`] = { id: `s${i}`, seatNumber: i, name: `學生${i}`, gender: 'female' };
-        }
-        return {
-            name,
-            students,
-            normalSeats: {},
-            groupSeats: {},
-            examSeats: {},
-            scores: {},
-            scoreHistory: {},
-            groupScores: {},
-            groupScoreHistory: {},
-            createdAt: Date.now()
-        };
-    }
+  // ── Render ───────────────────────────────────────────────────
+  _renderAll() { this._renderStudentList(); this._renderSeats(); }
 
-    async _saveToFirebase() {
-        if (!this.currentUser || !this.db) return;
-        
-        this._setSyncStatus('syncing');
-        try {
-            const ref = window._firestoreDoc(this.db, 'teachers', this.currentUser.uid);
-            await window._firestoreSetDoc(ref, {
-                email: this.currentUser.email,
-                displayName: this.currentUser.displayName,
-                classes: this.classes,
-                homeworkNotes: this.homeworkNotes,
-                updatedAt: Date.now()
-            });
-            this._setSyncStatus('synced');
-        } catch (err) {
-            console.error('儲存失敗:', err);
-            this._setSyncStatus('error');
-        }
-    }
-
-    _scheduleSave() {
-        clearTimeout(this.saveTimer);
-        this.saveTimer = setTimeout(() => this._saveToFirebase(), 1500);
-    }
-
-    _setSyncStatus(status) {
-        const dot = document.getElementById('syncDot');
-        const text = document.getElementById('syncText');
-        if (status === 'syncing') {
-            dot.className = 'sync-dot syncing';
-            text.textContent = '同步中...';
-        } else if (status === 'synced') {
-            dot.className = 'sync-dot';
-            text.textContent = '已同步';
-        } else {
-            dot.className = 'sync-dot';
-            dot.style.background = '#ef4444';
-            text.textContent = '同步失敗';
-        }
-    }
-
-    _showOfflineMode() {
-        // ネットワークエラー時はlocalStorageにフォールバック
-        const saved = localStorage.getItem('classroom_offline_data');
-        if (saved) {
-            const data = JSON.parse(saved);
-            this.classes = data.classes || {};
-            this.homeworkNotes = data.homeworkNotes || {};
-        } else {
-            this.classes = { 'class_default': this._createDefaultClass('我的班級') };
-            this.homeworkNotes = {};
-        }
-        const classIds = Object.keys(this.classes);
-        this.currentClassId = classIds[0] || null;
-        this._renderClassTabs();
+  _renderTabs() {
+    const container = document.getElementById('classTabs');
+    container.innerHTML = '';
+    Object.entries(this.data.classes).forEach(([id,cls]) => {
+      const tab = document.createElement('div');
+      tab.className = 'class-tab' + (id===this.currentClassId?' active':'');
+      tab.innerHTML = `<span class="tab-name">${cls.name}</span><span class="class-tab-rename btn-sm" data-id="${id}" title="修改名稱">✏️</span>`;
+      tab.querySelector('.tab-name').onclick = () => {
+        this.currentClassId = id;
+        this._renderTabs();
         this._renderAll();
-        document.getElementById('syncText').textContent = '離線模式';
-    }
+      };
+      tab.querySelector('.class-tab-rename').onclick = e => {
+        e.stopPropagation();
+        this.renamingClassId = id;
+        document.getElementById('renameClassInput').value = cls.name;
+        this._showModal('renameClassModal');
+      };
+      container.appendChild(tab);
+    });
+  }
 
-    // ─── 現在のクラスデータ取得 ──────────────────────────
-
-    get _cls() { return this.classes[this.currentClassId] || {}; }
-    get _students() { return this._cls.students || {}; }
-    get _seats() {
-        const c = this._cls;
-        if (this.currentMode === 'normal') return c.normalSeats || {};
-        if (this.currentMode === 'group') return c.groupSeats || {};
-        if (this.currentMode === 'exam') return c.examSeats || {};
-        return {};
-    }
-    get _scores() { return this._cls.scores || {}; }
-    get _groupScores() { return this._cls.groupScores || {}; }
-
-    _setSeats(seats) {
-        const c = this.classes[this.currentClassId];
-        if (this.currentMode === 'normal') c.normalSeats = seats;
-        else if (this.currentMode === 'group') c.groupSeats = seats;
-        else if (this.currentMode === 'exam') c.examSeats = seats;
-    }
-
-    // ─── クラス管理 ──────────────────────────────────────
-
-    _renderClassTabs() {
-        const container = document.getElementById('classTabs');
-        container.innerHTML = '';
-        Object.entries(this.classes).forEach(([id, cls]) => {
-            const btn = document.createElement('button');
-            btn.className = 'class-tab' + (id === this.currentClassId ? ' active' : '');
-            btn.textContent = cls.name;
-            btn.onclick = () => { this.currentClassId = id; this._renderClassTabs(); this._renderAll(); };
-            container.appendChild(btn);
+  _renderStudentList() {
+    const container = document.getElementById('studentList');
+    container.innerHTML = '';
+    for (let i=1;i<=40;i++) {
+      const st = Object.values(this._students).find(s=>s.seatNumber===i);
+      const chip = document.createElement('div');
+      if (st) {
+        const hw = this._hwCount(st.id);
+        chip.className = 's-chip';
+        chip.draggable = true;
+        chip.dataset.studentId = st.id;
+        chip.innerHTML = `
+          <div class="sn">${st.seatNumber}</div>
+          <div class="nm">${st.name.length>3?st.name.slice(0,3):st.name}</div>
+          <div class="gd ${st.gender==='male'?'gd-m':'gd-f'}"></div>
+          ${hw>0?`<div style="font-size:0.5rem;color:#f59e0b;">${'★'.repeat(Math.min(hw,3))}</div>`:''}
+        `;
+        chip.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', `student:${st.id}`);
+          chip.classList.add('dragging');
         });
+        chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+        let tt=0;
+        chip.addEventListener('dblclick', () => this._showSettings(st.id));
+        chip.addEventListener('touchend', e => {
+          const now=Date.now(),d=now-tt;
+          if(d<400&&d>0){e.preventDefault();this._showSettings(st.id);}
+          tt=now;
+        });
+      } else {
+        chip.className = 's-chip empty';
+        chip.innerHTML = `<div class="sn" style="color:#94a3b8;">${i}</div><div style="font-size:0.55rem;color:#94a3b8;">空</div>`;
+        chip.onclick = () => this._openEditStudent(null, i);
+      }
+      container.appendChild(chip);
+    }
+  }
+
+  _renderSeats() {
+    const area = document.getElementById('seatingArea');
+    area.innerHTML = '';
+
+    if (this.currentMode === 'free') {
+      this._renderFreeSeats(area);
+      return;
     }
 
-    _renderAll() {
-        this._renderStudentList();
-        this._renderSeats();
+    if (this.isStudentView) {
+      const p = document.createElement('div'); p.className='podium'; p.textContent='講  台';
+      area.appendChild(p);
     }
 
-    // ─── 学生リスト描画 ──────────────────────────────────
+    if (this.currentMode==='normal') this._renderNormal(area);
+    else if (this.currentMode==='group') this._renderGroup(area);
+    else if (this.currentMode==='exam') this._renderExam(area);
 
-    _renderStudentList() {
-        const container = document.getElementById('studentList');
-        container.innerHTML = '';
-        for (let i = 1; i <= 40; i++) {
-            const student = Object.values(this._students).find(s => s.seatNumber === i);
-            const chip = document.createElement('div');
-            if (student) {
-                chip.className = 'student-chip';
-                chip.draggable = true;
-                chip.dataset.studentId = student.id;
-                const hw = (this.homeworkNotes[student.id] || []).length;
-                chip.innerHTML = `
-                    <div class="num">${student.seatNumber}</div>
-                    <div class="name">${student.name.length > 3 ? student.name.slice(0,3) : student.name}</div>
-                    <div class="gender-dot ${student.gender === 'male' ? 'gender-male' : 'gender-female'}"></div>
-                    ${hw > 0 ? `<div style="font-size:0.5rem; color:var(--accent-yellow);">${'★'.repeat(Math.min(hw,3))}</div>` : ''}
-                `;
-                chip.addEventListener('dragstart', e => {
-                    e.dataTransfer.setData('text/plain', `student:${student.id}`);
-                    chip.classList.add('dragging');
-                });
-                chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
-                let tt = 0;
-                chip.addEventListener('dblclick', () => this._showStudentSettings(student.id));
-                chip.addEventListener('touchend', e => {
-                    const now = Date.now(); const d = now - tt;
-                    if (d < 400 && d > 0) { e.preventDefault(); this._showStudentSettings(student.id); }
-                    tt = now;
-                });
-            } else {
-                chip.className = 'student-chip empty-slot';
-                chip.innerHTML = `<div class="num" style="color:var(--text-secondary)">${i}</div><div style="color:var(--text-secondary);font-size:0.6rem;">空</div>`;
-                chip.onclick = () => this._showEditStudent(null, i);
-            }
-            container.appendChild(chip);
+    if (!this.isStudentView) {
+      const p = document.createElement('div'); p.className='podium'; p.style.marginTop='1.25rem'; p.textContent='講  台';
+      area.appendChild(p);
+    }
+  }
+
+  // Normal: 5 rows × 6 cols (2-2-2)
+  _renderNormal(container) {
+    const sz = this.seatSize;
+    const rows = this.isStudentView?[4,3,2,1,0]:[0,1,2,3,4];
+    rows.forEach(row => {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'normal-row';
+      const order = this.isStudentView?[5,4,3,2,1,0]:[0,1,2,3,4,5];
+      for (let g=0;g<3;g++) {
+        const grp = document.createElement('div'); grp.className='seat-group';
+        for (let k=0;k<2;k++) {
+          grp.appendChild(this._mkSeat(row*6+order[g*2+k], sz));
         }
-    }
+        rowDiv.appendChild(grp);
+      }
+      container.appendChild(rowDiv);
+    });
+  }
 
-    // ─── 座席描画 ────────────────────────────────────────
+  // Group: 6 groups × 5 seats
+  _renderGroup(container) {
+    const sz = this.seatSize;
+    const gc = document.createElement('div'); gc.className='group-grid';
+    const order = [3,4,5,0,1,2];
+    order.forEach(g => {
+      const box = document.createElement('div'); box.className='group-box';
+      const lbl = document.createElement('button'); lbl.className='group-lbl-btn';
+      lbl.textContent=`第${g+1}組`; lbl.onclick=()=>this._showGroupScoreModal(g+1);
+      box.appendChild(lbl);
+      const inner = document.createElement('div'); inner.className='group-inner';
+      const seatRows = this.isStudentView?[[3,4],[1,2],[0]]:[[0],[1,2],[3,4]];
+      seatRows.forEach(sr => {
+        const rDiv = document.createElement('div'); rDiv.className='group-row';
+        sr.forEach(s => rDiv.appendChild(this._mkSeat(g*5+s, sz)));
+        inner.appendChild(rDiv);
+      });
+      box.appendChild(inner);
+      gc.appendChild(box);
+    });
+    container.appendChild(gc);
+  }
 
-    _renderSeats() {
-        const area = document.getElementById('seatingArea');
-        area.innerHTML = '';
+  // Exam: 6 rows × 6 cols
+  _renderExam(container) {
+    const sz = this.seatSize;
+    const rows = this.isStudentView?[5,4,3,2,1,0]:[0,1,2,3,4,5];
+    rows.forEach(row => {
+      const rowDiv = document.createElement('div'); rowDiv.className='normal-row';
+      const order = this.isStudentView?[5,4,3,2,1,0]:[0,1,2,3,4,5];
+      order.forEach(col => rowDiv.appendChild(this._mkSeat(row*6+col, sz)));
+      container.appendChild(rowDiv);
+    });
+  }
 
-        if (this.isStudentView) {
-            const podTop = document.createElement('div');
-            podTop.className = 'podium';
-            podTop.textContent = '講 台';
-            area.appendChild(podTop);
-        }
-
-        if (this.currentMode === 'normal') this._renderNormal(area);
-        else if (this.currentMode === 'group') this._renderGroup(area);
-        else if (this.currentMode === 'exam') this._renderExam(area);
-
-        if (!this.isStudentView) {
-            const podBottom = document.createElement('div');
-            podBottom.className = 'podium';
-            podBottom.style.marginTop = '1.25rem';
-            podBottom.style.marginBottom = '0';
-            podBottom.textContent = '講 台';
-            area.appendChild(podBottom);
-        }
-    }
-
-    _renderNormal(container) {
-        const rows = this.isStudentView ? [4,3,2,1,0] : [0,1,2,3,4];
-        rows.forEach(row => {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'normal-row';
-            const order = this.isStudentView ? [5,4,3,2,1,0] : [0,1,2,3,4,5];
-            for (let g = 0; g < 3; g++) {
-                const grp = document.createElement('div');
-                grp.className = 'seat-group';
-                for (let k = 0; k < 2; k++) {
-                    const col = order[g*2+k];
-                    grp.appendChild(this._createSeat(row*6+col));
-                }
-                rowDiv.appendChild(grp);
-            }
-            container.appendChild(rowDiv);
+  _mkSeat(position, sz) {
+    const el = document.createElement('div');
+    el.className = 'seat';
+    el.dataset.position = position;
+    el.style.width = sz+'px';
+    el.style.height = Math.round(sz*0.65)+'px';
+    const seats = this._seats;
+    const sid = seats[position];
+    if (sid) {
+      const st = this._students[sid];
+      if (st) {
+        el.classList.add('occupied');
+        const hw = this._hwCount(st.id);
+        const nameSz = Math.max(10, Math.round(sz*0.13));
+        const numSz  = Math.max(9,  Math.round(sz*0.11));
+        el.innerHTML = `
+          <div class="seat-no" style="font-size:${numSz}px;">${st.seatNumber}</div>
+          <div class="seat-nm" style="font-size:${nameSz}px;">${st.name.length>4?st.name.slice(0,4):st.name}</div>
+          ${hw>0?`<div class="seat-hw">${'⭐'.repeat(Math.min(hw,4))}${hw>4?'+':''}</div>`:''}
+        `;
+        let tt=0;
+        el.addEventListener('dblclick',()=>{if(!this.isLotteryRunning)this._showSettings(st.id);});
+        el.addEventListener('touchend',e=>{
+          const now=Date.now(),d=now-tt;
+          if(d<400&&d>0){e.preventDefault();this._showSettings(st.id);}
+          tt=now;
         });
+      }
+    } else {
+      const hintSz = Math.max(9, Math.round(sz*0.1));
+      el.innerHTML = `<div style="color:#cbd5e1;font-size:${hintSz}px;">空位</div>`;
     }
+    this._makeDrop(el);
+    this._makeDragSeat(el);
+    return el;
+  }
 
-    _renderGroup(container) {
-        const gc = document.createElement('div');
-        gc.className = 'group-container';
-        const order = this.isStudentView ? [3,4,5,0,1,2] : [3,4,5,0,1,2];
-        order.forEach(g => {
-            const box = document.createElement('div');
-            box.className = 'group-box';
-            const lbl = document.createElement('button');
-            lbl.className = 'group-label-btn';
-            lbl.textContent = `第${g+1}組`;
-            lbl.onclick = () => this._showGroupScoreModal(g+1);
-            box.appendChild(lbl);
-            const inner = document.createElement('div');
-            inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:8px;';
-            const seatRows = this.isStudentView ? [[3,4],[1,2],[0]] : [[0],[1,2],[3,4]];
-            seatRows.forEach(sr => {
-                const rDiv = document.createElement('div');
-                rDiv.style.cssText = 'display:flex;gap:8px;';
-                sr.forEach(s => rDiv.appendChild(this._createSeat(g*5+s)));
-                inner.appendChild(rDiv);
-            });
-            box.appendChild(inner);
-            gc.appendChild(box);
-        });
-        container.appendChild(gc);
-    }
+  // ── Free Seats ───────────────────────────────────────────────
+  _renderFreeSeats(area) {
+    area.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.id = 'freeArea';
 
-    _renderExam(container) {
-        const rows = this.isStudentView ? [5,4,3,2,1,0] : [0,1,2,3,4,5];
-        rows.forEach(row => {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'normal-row';
-            const order = this.isStudentView ? [5,4,3,2,1,0] : [0,1,2,3,4,5];
-            order.forEach(col => rowDiv.appendChild(this._createSeat(row*6+col)));
-            container.appendChild(rowDiv);
-        });
-    }
+    const hint = document.createElement('div');
+    hint.className = 'free-hint';
+    hint.innerHTML = '將左側學生拖曳到此區域<br>可自由排列位置<br><span style="font-size:0.8rem;opacity:0.7;">雙擊座位可加減分</span>';
+    wrap.appendChild(hint);
 
-    _createSeat(position) {
-        const el = document.createElement('div');
-        el.className = 'seat';
-        el.dataset.position = position;
-        const seats = this._seats;
-        const studentId = seats[position];
-        if (studentId) {
-            const st = this._students[studentId];
-            if (st) {
-                el.classList.add('occupied');
-                const hw = (this.homeworkNotes[st.id] || []).length;
-                const score = this._scores[st.id] || 0;
-                el.innerHTML = `
-                    <div class="seat-num">${st.seatNumber}</div>
-                    <div class="seat-name">${st.name.length > 3 ? st.name.slice(0,3) : st.name}</div>
-                    ${hw > 0 ? `<div class="homework-stars">${'⭐'.repeat(Math.min(hw,4))}${hw>4?'+':''}</div>` : ''}
-                `;
-                let tt = 0;
-                el.addEventListener('dblclick', () => { if (!this.isLotteryRunning) this._showStudentSettings(st.id); });
-                el.addEventListener('touchend', e => {
-                    const now = Date.now(); const d = now - tt;
-                    if (d < 400 && d > 0) { e.preventDefault(); this._showStudentSettings(st.id); }
-                    tt = now;
-                });
-            }
-        } else {
-            el.innerHTML = `<div style="color:var(--text-secondary);font-size:0.72rem;">空位</div>`;
-        }
-        this._makeDraggable(el);
-        this._makeDroppable(el);
-        return el;
-    }
+    const sz = this.seatSize;
+    const freeSeats = this._seats;
+    Object.entries(freeSeats).forEach(([posKey, sid]) => {
+      const st = this._students[sid];
+      if (!st) return;
+      const coords = posKey.split(',');
+      const x = parseFloat(coords[0]), y = parseFloat(coords[1]);
+      const el = this._mkFreeSeat(posKey, st, x, y, sz);
+      wrap.appendChild(el);
+    });
 
-    // ─── ドラッグ&ドロップ ───────────────────────────────
-
-    _makeDraggable(el) {
-        el.draggable = true;
-        el.addEventListener('dragstart', e => {
-            e.dataTransfer.setData('text/plain', `seat:${el.dataset.position}`);
-            el.classList.add('dragging');
-        });
-        el.addEventListener('dragend', () => el.classList.remove('dragging'));
-    }
-
-    _makeDroppable(el) {
-        el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drop-zone'); });
-        el.addEventListener('dragleave', () => el.classList.remove('drop-zone'));
-        el.addEventListener('drop', e => {
-            e.preventDefault();
-            el.classList.remove('drop-zone');
-            const data = e.dataTransfer.getData('text/plain');
-            const toPos = parseInt(el.dataset.position);
-            const seats = { ...this._seats };
-
-            if (data.startsWith('student:')) {
-                const sid = data.replace('student:', '');
-                Object.keys(seats).forEach(p => { if (seats[p] === sid) delete seats[p]; });
-                seats[toPos] = sid;
-            } else if (data.startsWith('seat:')) {
-                const fromPos = parseInt(data.replace('seat:', ''));
-                const temp = seats[fromPos];
-                seats[fromPos] = seats[toPos];
-                seats[toPos] = temp;
-                if (seats[fromPos] === undefined) delete seats[fromPos];
-                if (seats[toPos] === undefined) delete seats[toPos];
-            }
-            this._setSeats(seats);
-            this._scheduleSave();
-            this._renderAll();
-        });
-    }
-
-    // ─── 學生設定 ─────────────────────────────────────────
-
-    _showStudentSettings(studentId) {
-        const st = this._students[studentId];
-        if (!st) return;
-        this.currentSettingsStudentId = studentId;
-        this.selectedSettingsScoreType = null;
-        document.getElementById('settingsName').textContent = `${st.seatNumber}號 ${st.name}`;
-        document.getElementById('settingsScore').textContent = `${this._scores[studentId] || 0} 分`;
-        document.getElementById('settingsReason').value = '';
-        document.getElementById('settingsScoreAmt').value = 1;
-        this._showModal('studentSettingsModal');
-    }
-
-    _adjustStudentScore(type) {
-        const amt = parseInt(document.getElementById('settingsScoreAmt').value) || 1;
-        const reason = document.getElementById('settingsReason').value.trim();
-        if (!reason) { alert('請輸入加減分原因'); return; }
-
-        const studentId = this.currentSettingsStudentId;
-        const cls = this.classes[this.currentClassId];
-        if (!cls.scores) cls.scores = {};
-        if (!cls.scoreHistory) cls.scoreHistory = {};
-        if (!cls.scoreHistory[studentId]) cls.scoreHistory[studentId] = [];
-
-        const change = type * amt;
-        cls.scores[studentId] = (cls.scores[studentId] || 0) + change;
-        cls.scoreHistory[studentId].push({
-            date: new Date().toLocaleString('zh-TW'),
-            change, reason, total: cls.scores[studentId]
-        });
-
-        document.getElementById('settingsScore').textContent = `${cls.scores[studentId]} 分`;
-        this._scheduleSave();
-        this._renderAll();
-    }
-
-    // ─── グループスコア ───────────────────────────────────
-
-    _showGroupScoreModal(groupNum) {
-        this.currentGroupNumber = groupNum;
-        this.selectedGroupScoreType = null;
-        document.getElementById('groupModalTitle').textContent = `第${groupNum}組 積分調整`;
-        document.getElementById('groupScoreReason').value = '';
-        document.getElementById('groupScoreAmt').value = 1;
-        this._showModal('groupScoreModal');
-    }
-
-    _adjustGroupScore(type) {
-        const amt = parseInt(document.getElementById('groupScoreAmt').value) || 1;
-        const reason = document.getElementById('groupScoreReason').value.trim();
-        if (!reason) { alert('請輸入加減分原因'); return; }
-
-        const cls = this.classes[this.currentClassId];
-        if (!cls.groupScores) cls.groupScores = {};
-        if (!cls.groupScoreHistory) cls.groupScoreHistory = {};
-
-        const g = this.currentGroupNumber;
-        const change = type * amt;
-        cls.groupScores[g] = (cls.groupScores[g] || 0) + change;
-        if (!cls.groupScoreHistory[g]) cls.groupScoreHistory[g] = [];
-        cls.groupScoreHistory[g].push({
-            date: new Date().toLocaleString('zh-TW'), change, reason, total: cls.groupScores[g]
-        });
-
-        this._scheduleSave();
-        this._hideModal('groupScoreModal');
-        alert(`第${g}組積分：${change > 0 ? '+' : ''}${change}分\n目前：${cls.groupScores[g]}分`);
-    }
-
-    // ─── 抽籤 ────────────────────────────────────────────
-
-    _startLottery(type) {
-        if (this.isLotteryRunning) return;
-        this._clearSelection();
-        const seats = this._seats;
-        const eligible = [];
-        Object.entries(seats).forEach(([pos, sid]) => {
-            const st = this._students[sid];
-            if (st && (type === 'all' || st.gender === type)) eligible.push({ pos, st });
-        });
-        const count = parseInt(document.getElementById('lotteryCount').value) || 1;
-        if (!eligible.length) { alert('沒有符合條件的學生！'); return; }
-        if (count > eligible.length) { alert(`學生不足${count}人`); return; }
-
-        this.isLotteryRunning = true;
-        this.flashIntervals = [];
-        eligible.forEach(({ pos }) => {
-            const el = document.querySelector(`[data-position="${pos}"]`);
-            if (!el) return;
-            const iv = setInterval(() => el.classList.toggle('lottery-flash'), 200 + Math.random() * 300);
-            this.flashIntervals.push(iv);
-        });
-
-        setTimeout(() => {
-            this.flashIntervals.forEach(iv => clearInterval(iv));
-            this.flashIntervals = [];
-            eligible.forEach(({ pos }) => {
-                const el = document.querySelector(`[data-position="${pos}"]`);
-                if (el) el.classList.remove('lottery-flash');
-            });
-
-            const shuffled = [...eligible].sort(() => Math.random() - 0.5);
-            const winners = shuffled.slice(0, count);
-            this.selectedStudents = winners;
-            winners.forEach(({ pos }) => {
-                const el = document.querySelector(`[data-position="${pos}"]`);
-                if (el) el.classList.add('lottery-selected');
-            });
-
-            const nums = winners.map(w => w.st.seatNumber);
-            this._speak(nums.length === 1 ? `恭喜${nums[0]}號` : `恭喜${nums.join('號、')}號`);
-            document.getElementById('clearSelection').classList.remove('hidden');
-            this.isLotteryRunning = false;
-        }, 3000);
-    }
-
-    _clearSelection() {
-        this.flashIntervals.forEach(iv => clearInterval(iv));
-        this.flashIntervals = [];
-        document.querySelectorAll('.lottery-selected,.lottery-flash').forEach(el => {
-            el.classList.remove('lottery-selected', 'lottery-flash');
-        });
-        this.selectedStudents = [];
-        document.getElementById('clearSelection').classList.add('hidden');
-    }
-
-    _speak(text) {
-        if (!('speechSynthesis' in window)) return;
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'zh-TW'; u.rate = 0.9; u.pitch = 1.1;
-        const voices = speechSynthesis.getVoices();
-        const v = voices.find(v => v.name.includes('Google') && v.lang.includes('zh'));
-        if (v) u.voice = v;
-        speechSynthesis.speak(u);
-    }
-
-    // ─── タイマー ─────────────────────────────────────────
-
-    _startTimer() {
-        const h = parseInt(document.getElementById('timerH').value) || 0;
-        const m = parseInt(document.getElementById('timerM').value) || 0;
-        const s = parseInt(document.getElementById('timerS').value) || 0;
-        const total = h * 3600 + m * 60 + s;
-        if (!total) { alert('請設定有效時間'); return; }
-
-        this.timerRemaining = total;
-        this.timerRunning = true;
-        this.timerPaused = false;
-        this._hideModal('timerModal');
-
-        const disp = document.getElementById('timerDisplay');
-        const pauseBtn = document.getElementById('pauseTimer');
-        const stopBtn = document.getElementById('stopTimer');
-        disp.classList.remove('hidden');
-        pauseBtn.classList.remove('hidden');
-        stopBtn.classList.remove('hidden');
-
-        const update = () => {
-            const h2 = Math.floor(this.timerRemaining / 3600);
-            const m2 = Math.floor((this.timerRemaining % 3600) / 60);
-            const s2 = this.timerRemaining % 60;
-            disp.textContent = h2 > 0
-                ? `${String(h2).padStart(2,'0')}:${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`
-                : `${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`;
-            disp.className = 'timer-display' + (this.timerRemaining <= 10 && this.timerRemaining > 0 ? ' urgent' : '');
-        };
-
-        update();
-        this.timerInterval = setInterval(() => {
-            if (!this.timerPaused) {
-                this.timerRemaining--;
-                update();
-                if (this.timerRemaining <= 0) {
-                    clearInterval(this.timerInterval);
-                    this.timerRunning = false;
-                    disp.classList.add('hidden');
-                    pauseBtn.classList.add('hidden');
-                    stopBtn.classList.add('hidden');
-                    this._playAlarm();
-                    this._speak('時間到囉');
-                    this._showModal('timeUpModal');
-                }
-            }
-        }, 1000);
-    }
-
-    _playAlarm() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
-                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                    osc.start(); osc.stop(ctx.currentTime + 0.5);
-                }, i * 600);
-            }
-        } catch(e) {}
-    }
-
-    // ─── 學生編輯 ─────────────────────────────────────────
-
-    _showEditStudent(studentId, defaultSeat = null) {
-        this.editingStudentId = studentId;
-        const st = studentId ? this._students[studentId] : null;
-        document.getElementById('editModalTitle').textContent = st ? '編輯學生' : '新增學生';
-        document.getElementById('editSeatNum').value = st ? st.seatNumber : (defaultSeat || '');
-        document.getElementById('editName').value = st ? st.name : '';
-        document.getElementById('editGender').value = st ? st.gender : 'male';
-        document.getElementById('deleteStudentBtn').style.display = st ? 'inline' : 'none';
-        this._showModal('editStudentModal');
-    }
-
-    _saveStudent() {
-        const seatNumber = parseInt(document.getElementById('editSeatNum').value);
-        const name = document.getElementById('editName').value.trim();
-        const gender = document.getElementById('editGender').value;
-        if (!name) { alert('請輸入姓名'); return; }
-
-        const cls = this.classes[this.currentClassId];
-        if (!cls.students) cls.students = {};
-
-        if (this.editingStudentId) {
-            const st = cls.students[this.editingStudentId];
-            if (st) { st.seatNumber = seatNumber; st.name = name; st.gender = gender; }
-        } else {
-            const newId = `s${Date.now()}`;
-            cls.students[newId] = { id: newId, seatNumber, name, gender };
-        }
-
-        this._scheduleSave();
-        this._renderAll();
-        this._hideModal('editStudentModal');
-    }
-
-    _deleteStudent() {
-        if (!this.editingStudentId || !confirm('確定刪除？')) return;
-        const cls = this.classes[this.currentClassId];
-        const sid = this.editingStudentId;
-        delete cls.students[sid];
-        ['normalSeats','groupSeats','examSeats'].forEach(key => {
-            const seats = cls[key] || {};
-            Object.keys(seats).forEach(p => { if (seats[p] === sid) delete seats[p]; });
-        });
-        delete (cls.scores || {})[sid];
-        delete (cls.scoreHistory || {})[sid];
-        delete this.homeworkNotes[sid];
-        this._scheduleSave();
-        this._renderAll();
-        this._hideModal('editStudentModal');
-    }
-
-    // ─── 積分ランキング ───────────────────────────────────
-
-    _showScores() {
-        const students = Object.values(this._students)
-            .map(st => ({ ...st, score: this._scores[st.id] || 0 }))
-            .sort((a, b) => b.score - a.score);
-
-        const list = document.getElementById('scoresList');
-        list.innerHTML = '';
-        students.forEach((st, i) => {
-            const row = document.createElement('div');
-            row.className = 'score-row';
-            row.innerHTML = `
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
-                    <span style="font-size:0.875rem;">${st.seatNumber}號 ${st.name}</span>
-                </div>
-                <span class="score-value">${st.score} 分</span>
-            `;
-            list.appendChild(row);
-        });
-        this._showModal('scoresModal');
-    }
-
-    _showGroupScores() {
-        const gs = this._groupScores;
-        const groups = Array.from({length:6}, (_,i) => ({ g: i+1, score: gs[i+1] || 0 }))
-            .sort((a,b) => b.score - a.score);
-        const list = document.getElementById('groupScoresList');
-        list.innerHTML = '';
-        groups.forEach((g, i) => {
-            const row = document.createElement('div');
-            row.className = 'score-row';
-            row.innerHTML = `
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
-                    <span style="font-size:0.875rem;">第${g.g}組</span>
-                </div>
-                <span class="score-value" style="color:var(--accent-teal);">${g.score} 分</span>
-            `;
-            list.appendChild(row);
-        });
-        this._showModal('groupScoresModal');
-    }
-
-    // ─── 積分歴史 ─────────────────────────────────────────
-
-    _showHistory(studentId) {
-        const st = this._students[studentId];
-        if (!st) return;
-        const cls = this.classes[this.currentClassId];
-        const history = (cls.scoreHistory || {})[studentId] || [];
-        document.getElementById('historyTitle').textContent = `${st.seatNumber}號 ${st.name} 的積分記錄`;
-        const list = document.getElementById('historyList');
-        list.innerHTML = history.length ? '' : '<div style="color:var(--text-secondary);padding:1rem;text-align:center;">暫無記錄</div>';
-        [...history].reverse().forEach(r => {
-            const div = document.createElement('div');
-            div.style.cssText = `padding:0.625rem;background:var(--bg-secondary);border-radius:8px;margin-bottom:6px;border-left:3px solid ${r.change>0?'var(--accent-teal)':'var(--accent-pink)'};`;
-            div.innerHTML = `
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                    <span style="font-size:0.72rem;color:var(--text-secondary);">${r.date}</span>
-                    <span style="font-family:'Space Mono',monospace;font-weight:700;color:${r.change>0?'var(--accent-teal)':'var(--accent-pink)'};">${r.change>0?'+':''}${r.change}分</span>
-                </div>
-                <div style="font-size:0.82rem;">${r.reason}</div>
-                <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">累積：${r.total}分</div>
-            `;
-            list.appendChild(div);
-        });
-        this._showModal('historyModal');
-    }
-
-    // ─── 作業管理 ─────────────────────────────────────────
-
-    _showHomework() {
-        const sid = this.currentSettingsStudentId;
-        const st = this._students[sid];
-        if (!st) return;
-        document.getElementById('homeworkTitle').textContent = `作業管理 - ${st.name}`;
-        document.getElementById('newHomeworkInput').value = '';
-        this._renderHomeworkList();
-        this._showModal('homeworkModal');
-    }
-
-    _renderHomeworkList() {
-        const sid = this.currentSettingsStudentId;
-        const list = this.homeworkNotes[sid] || [];
-        const container = document.getElementById('homeworkList');
-        container.innerHTML = list.length ? '' : '<div style="color:var(--text-secondary);font-size:0.8rem;">沒有未交作業</div>';
-        list.forEach((hw, idx) => {
-            const div = document.createElement('div');
-            div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem;';
-            div.innerHTML = `<span>⭐ ${hw.name} <span style="color:var(--text-secondary);font-size:0.7rem;">${hw.date}</span></span>`;
-            const rmBtn = document.createElement('button');
-            rmBtn.className = 'btn btn-teal';
-            rmBtn.style.cssText = 'padding:2px 8px;font-size:0.7rem;';
-            rmBtn.textContent = '已交';
-            rmBtn.onclick = () => {
-                list.splice(idx, 1);
-                if (!list.length) delete this.homeworkNotes[sid];
-                this._renderHomeworkList();
-            };
-            div.appendChild(rmBtn);
-            container.appendChild(div);
-        });
-    }
-
-    // ─── ランダム着席 ─────────────────────────────────────
-
-    _randomSeating() {
-        if (!confirm('確定隨機安排座位？這會清除目前安排。')) return;
-        const maxPos = this.currentMode === 'exam' ? 36 : 30;
-        const positions = Array.from({length: maxPos}, (_, i) => i).sort(() => Math.random() - 0.5);
-        const students = Object.values(this._students).sort(() => Math.random() - 0.5);
-        const seats = {};
-        students.forEach((st, i) => { if (i < positions.length) seats[positions[i]] = st.id; });
-        this._setSeats(seats);
+    // Drop onto free area from student panel
+    wrap.addEventListener('dragover', e => { e.preventDefault(); wrap.classList.add('drop-active'); });
+    wrap.addEventListener('dragleave', () => wrap.classList.remove('drop-active'));
+    wrap.addEventListener('drop', e => {
+      e.preventDefault();
+      wrap.classList.remove('drop-active');
+      const data = e.dataTransfer.getData('text/plain');
+      const rect = wrap.getBoundingClientRect();
+      const x = Math.max(0, e.clientX - rect.left - sz/2);
+      const y = Math.max(0, e.clientY - rect.top  - Math.round(sz*0.65)/2);
+      const freeSeats = { ...this._seats };
+      if (data.startsWith('student:')) {
+        const sid = data.replace('student:','');
+        // remove from any existing free seat
+        Object.keys(freeSeats).forEach(k => { if (freeSeats[k]===sid) delete freeSeats[k]; });
+        freeSeats[`${x},${y}`] = sid;
+        this._setSeats(freeSeats);
         this._scheduleSave();
         this._renderSeats();
-    }
-
-    // ─── 匯出CSV ──────────────────────────────────────────
-
-    _exportCSV() {
-        const rows = [['座號','姓名','性別','積分']];
-        Object.values(this._students)
-            .sort((a,b) => a.seatNumber - b.seatNumber)
-            .forEach(st => rows.push([
-                st.seatNumber, st.name,
-                st.gender === 'male' ? '男' : '女',
-                this._scores[st.id] || 0
-            ]));
-        const csv = '\uFEFF' + rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-        a.download = `${this._cls.name || '班級'}_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'')}.csv`;
-        a.click();
-    }
-
-    // ─── モーダル管理 ─────────────────────────────────────
-
-    _showModal(id) { document.getElementById(id).classList.add('show'); }
-    _hideModal(id) { document.getElementById(id).classList.remove('show'); }
-
-    // ─── イベントバインド ──────────────────────────────────
-
-    _bindGlobalEvents() {
-        // Google ログイン
-        document.getElementById('googleLoginBtn')?.addEventListener('click', async () => {
-            try {
-                const provider = new window._GoogleAuthProvider();
-                await window._signInWithPopup(window._firebaseAuth, provider);
-            } catch(e) {
-                alert('登入失敗：' + e.message);
-            }
-        });
-
-        // サインアウト
-        document.getElementById('signoutBtn')?.addEventListener('click', async () => {
-            if (confirm('確定要登出嗎？')) await window._signOut(window._firebaseAuth);
-        });
-
-        // 班級追加
-        document.getElementById('addClassBtn')?.addEventListener('click', () => this._showModal('addClassModal'));
-        document.getElementById('confirmAddClass')?.addEventListener('click', () => {
-            const name = document.getElementById('newClassName').value.trim();
-            if (!name) { alert('請輸入班級名稱'); return; }
-            const id = `class_${Date.now()}`;
-            this.classes[id] = this._createDefaultClass(name);
-            this.currentClassId = id;
-            document.getElementById('newClassName').value = '';
-            this._hideModal('addClassModal');
-            this._renderClassTabs();
-            this._renderAll();
-            this._scheduleSave();
-        });
-        document.getElementById('cancelAddClass')?.addEventListener('click', () => this._hideModal('addClassModal'));
-
-        // モード切替
-        ['normalMode','groupMode','examMode'].forEach(id => {
-            document.getElementById(id)?.addEventListener('click', () => {
-                this.currentMode = id.replace('Mode', '');
-                ['normalMode','groupMode','examMode'].forEach(b => {
-                    const el = document.getElementById(b);
-                    if (el) el.className = b === id ? 'btn btn-blue active' : 'btn btn-gray';
-                });
-                const labels = {normalMode:'一般座位模式', groupMode:'小組座位模式', examMode:'考試座位模式'};
-                document.getElementById('currentModeLabel').textContent = labels[id];
-                this._renderSeats();
-            });
-        });
-
-        // 学生視角
-        document.getElementById('studentViewBtn')?.addEventListener('click', () => {
-            this.isStudentView = !this.isStudentView;
-            const btn = document.getElementById('studentViewBtn');
-            if (this.isStudentView) {
-                btn.textContent = '老師視角';
-                btn.className = 'btn btn-yellow';
-            } else {
-                btn.textContent = '學生視角';
-                btn.className = 'btn btn-teal';
-            }
-            this._renderSeats();
-        });
-
-        // 積分
-        document.getElementById('showScoresBtn')?.addEventListener('click', () => this._showScores());
-        document.getElementById('closeScoresModal')?.addEventListener('click', () => this._hideModal('scoresModal'));
-        document.getElementById('resetAllScoresBtn')?.addEventListener('click', () => {
-            if (!confirm('確定重置？')) return;
-            const cls = this.classes[this.currentClassId];
-            cls.scores = {}; cls.scoreHistory = {};
-            this._scheduleSave();
-            this._hideModal('scoresModal');
-        });
-
-        // 小組積分
-        document.getElementById('showGroupScoresBtn')?.addEventListener('click', () => this._showGroupScores());
-        document.getElementById('closeGroupScoresModal')?.addEventListener('click', () => this._hideModal('groupScoresModal'));
-        document.getElementById('resetGroupScoresBtn')?.addEventListener('click', () => {
-            if (!confirm('確定重置？')) return;
-            const cls = this.classes[this.currentClassId];
-            cls.groupScores = {}; cls.groupScoreHistory = {};
-            this._scheduleSave();
-            this._hideModal('groupScoresModal');
-        });
-
-        // 小組スコアモーダル
-        document.getElementById('addGroupScoreBtn')?.addEventListener('click', () => this._adjustGroupScore(1));
-        document.getElementById('subtractGroupScoreBtn')?.addEventListener('click', () => this._adjustGroupScore(-1));
-        document.getElementById('cancelGroupScore')?.addEventListener('click', () => this._hideModal('groupScoreModal'));
-        document.getElementById('confirmGroupScore')?.addEventListener('click', () => {
-            // addGroupScoreBtn / subtractGroupScoreBtn で処理済み
-        });
-        document.querySelectorAll('.group-reason-btn').forEach(btn => {
-            btn.addEventListener('click', () => { document.getElementById('groupScoreReason').value = btn.dataset.r; });
-        });
-
-        // 抽籤
-        document.getElementById('lotteryAll')?.addEventListener('click', () => this._startLottery('all'));
-        document.getElementById('lotteryBoys')?.addEventListener('click', () => this._startLottery('male'));
-        document.getElementById('lotteryGirls')?.addEventListener('click', () => this._startLottery('female'));
-        document.getElementById('clearSelection')?.addEventListener('click', () => this._clearSelection());
-
-        // タイマー
-        document.getElementById('timerBtn')?.addEventListener('click', () => this._showModal('timerModal'));
-        document.getElementById('startTimerBtn')?.addEventListener('click', () => this._startTimer());
-        document.getElementById('cancelTimerBtn')?.addEventListener('click', () => this._hideModal('timerModal'));
-        document.getElementById('pauseTimer')?.addEventListener('click', () => {
-            this.timerPaused = !this.timerPaused;
-            document.getElementById('pauseTimer').textContent = this.timerPaused ? '繼續' : '暫停';
-        });
-        document.getElementById('stopTimer')?.addEventListener('click', () => {
-            if (!confirm('確定停止？')) return;
-            clearInterval(this.timerInterval); this.timerRunning = false;
-            ['timerDisplay','pauseTimer','stopTimer'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        });
-        document.querySelectorAll('.quick-time').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const m = parseInt(btn.dataset.m);
-                document.getElementById('timerH').value = Math.floor(m/60);
-                document.getElementById('timerM').value = m % 60;
-                document.getElementById('timerS').value = 0;
-            });
-        });
-        document.getElementById('closeTimeUpBtn')?.addEventListener('click', () => this._hideModal('timeUpModal'));
-
-        // 学生設定
-        document.getElementById('settingsAddBtn')?.addEventListener('click', () => this._adjustStudentScore(1));
-        document.getElementById('settingsSubBtn')?.addEventListener('click', () => this._adjustStudentScore(-1));
-        document.getElementById('settingsConfirmScore')?.addEventListener('click', () => {
-            // settingsAddBtn / settingsSubBtn で処理済み
-        });
-        document.querySelectorAll('.settings-qs').forEach(btn => {
-            btn.addEventListener('click', () => { document.getElementById('settingsScoreAmt').value = btn.dataset.s; });
-        });
-        document.querySelectorAll('.settings-reason').forEach(btn => {
-            btn.addEventListener('click', () => { document.getElementById('settingsReason').value = btn.dataset.r; });
-        });
-        document.getElementById('settingsHistoryBtn')?.addEventListener('click', () => {
-            const sid = this.currentSettingsStudentId;
-            this._hideModal('studentSettingsModal');
-            this._showHistory(sid);
-        });
-        document.getElementById('settingsEditBtn')?.addEventListener('click', () => {
-            const sid = this.currentSettingsStudentId;
-            this._hideModal('studentSettingsModal');
-            this._showEditStudent(sid);
-        });
-        document.getElementById('settingsHomeworkBtn')?.addEventListener('click', () => this._showHomework());
-        document.getElementById('closeSettingsModal')?.addEventListener('click', () => this._hideModal('studentSettingsModal'));
-
-        // 歴史
-        document.getElementById('closeHistoryBtn')?.addEventListener('click', () => this._hideModal('historyModal'));
-
-        // 作業
-        document.getElementById('addHomeworkBtn')?.addEventListener('click', () => {
-            const name = document.getElementById('newHomeworkInput').value.trim();
-            if (!name) { alert('請輸入作業名稱'); return; }
-            const sid = this.currentSettingsStudentId;
-            if (!this.homeworkNotes[sid]) this.homeworkNotes[sid] = [];
-            this.homeworkNotes[sid].push({ name, date: new Date().toLocaleDateString('zh-TW') });
-            document.getElementById('newHomeworkInput').value = '';
-            this._renderHomeworkList();
-        });
-        document.getElementById('saveHomeworkBtn')?.addEventListener('click', () => {
-            this._scheduleSave();
-            this._renderAll();
-            this._hideModal('homeworkModal');
-        });
-        document.getElementById('closeHomeworkBtn')?.addEventListener('click', () => this._hideModal('homeworkModal'));
-
-        // 学生編集
-        document.getElementById('editStudentsBtn')?.addEventListener('click', () => this._showBulkEdit());
-        document.getElementById('saveStudentBtn')?.addEventListener('click', () => this._saveStudent());
-        document.getElementById('deleteStudentBtn')?.addEventListener('click', () => this._deleteStudent());
-        document.getElementById('cancelEditStudent')?.addEventListener('click', () => this._hideModal('editStudentModal'));
-        document.getElementById('closeBulkEdit')?.addEventListener('click', () => this._hideModal('bulkEditModal'));
-
-        // ランダム着席
-        document.getElementById('randomSeatingBtn')?.addEventListener('click', () => this._randomSeating());
-        document.getElementById('resetSeatsBtn')?.addEventListener('click', () => {
-            if (!confirm('確定重置座位？')) return;
-            this._setSeats({});
-            this._scheduleSave();
-            this._renderSeats();
-        });
-
-        // 匯出
-        document.getElementById('exportBtn')?.addEventListener('click', () => this._exportCSV());
-
-        // モーダル外クリックで閉じる
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', e => {
-                if (e.target === overlay) overlay.classList.remove('show');
-            });
-        });
-    }
-
-    _showBulkEdit() {
-        const container = document.getElementById('bulkEditList');
-        container.innerHTML = '';
-        for (let i = 1; i <= 40; i++) {
-            const st = Object.values(this._students).find(s => s.seatNumber === i);
-            const chip = document.createElement('div');
-            chip.style.cssText = 'aspect-ratio:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.65rem;cursor:pointer;padding:4px;text-align:center;transition:all 0.2s;';
-            if (st) {
-                chip.innerHTML = `<div style="font-family:'Space Mono',monospace;color:var(--accent-blue);font-weight:700;">${i}</div><div style="color:var(--text-primary);">${st.name.slice(0,3)}</div>`;
-                chip.addEventListener('mouseenter', () => chip.style.borderColor = 'var(--accent-blue)');
-                chip.addEventListener('mouseleave', () => chip.style.borderColor = 'var(--border)');
-                chip.addEventListener('click', () => { this._hideModal('bulkEditModal'); this._showEditStudent(st.id); });
-            } else {
-                chip.innerHTML = `<div style="color:var(--text-secondary);">${i}</div><div style="color:var(--text-secondary);font-size:0.55rem;">空</div>`;
-                chip.style.borderStyle = 'dashed';
-                chip.addEventListener('click', () => { this._hideModal('bulkEditModal'); this._showEditStudent(null, i); });
-            }
-            container.appendChild(chip);
+      } else if (data.startsWith('freemove:')) {
+        const oldKey = data.replace('freemove:','');
+        const sid = freeSeats[oldKey];
+        if (sid) {
+          delete freeSeats[oldKey];
+          freeSeats[`${x},${y}`] = sid;
+          this._setSeats(freeSeats);
+          this._scheduleSave();
+          this._renderSeats();
         }
-        this._showModal('bulkEditModal');
+      }
+    });
+
+    area.appendChild(wrap);
+  }
+
+  _mkFreeSeat(posKey, st, x, y, sz) {
+    const el = document.createElement('div');
+    el.className = 'free-seat';
+    el.dataset.posKey = posKey;
+    el.style.left = x+'px';
+    el.style.top  = y+'px';
+    el.style.width = sz+'px';
+    el.style.height = Math.round(sz*0.65)+'px';
+    const hw = this._hwCount(st.id);
+    const nameSz = Math.max(10, Math.round(sz*0.13));
+    const numSz  = Math.max(9,  Math.round(sz*0.11));
+    el.innerHTML = `
+      <div class="seat-no" style="font-size:${numSz}px;color:#7c3aed;">${st.seatNumber}</div>
+      <div class="seat-nm" style="font-size:${nameSz}px;">${st.name.length>4?st.name.slice(0,4):st.name}</div>
+      ${hw>0?`<div class="seat-hw">${'⭐'.repeat(Math.min(hw,4))}${hw>4?'+':''}</div>`:''}
+    `;
+
+    // Double-click to open settings
+    let tt=0;
+    el.addEventListener('dblclick', ()=>{if(!this.isLotteryRunning)this._showSettings(st.id);});
+    el.addEventListener('touchend',e=>{
+      const now=Date.now(),d=now-tt;
+      if(d<400&&d>0){e.preventDefault();this._showSettings(st.id);}
+      tt=now;
+    });
+
+    // Right-click to remove
+    el.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (confirm(`移除 ${st.name} 的自由座位？`)) {
+        const freeSeats = { ...this._seats };
+        delete freeSeats[posKey];
+        this._setSeats(freeSeats);
+        this._scheduleSave();
+        this._renderSeats();
+      }
+    });
+
+    // Drag to move within free area
+    el.draggable = true;
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', `freemove:${posKey}`);
+      el.classList.add('dragging-free');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging-free'));
+
+    return el;
+  }
+
+  // ── Drag & Drop for normal/group/exam ────────────────────────
+  _makeDragSeat(el) {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', `seat:${el.dataset.position}`);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  }
+
+  _makeDrop(el) {
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drop-zone'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drop-zone'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drop-zone');
+      const data = e.dataTransfer.getData('text/plain');
+      const toPos = parseInt(el.dataset.position);
+      const seats = { ...this._seats };
+      if (data.startsWith('student:')) {
+        const sid = data.replace('student:','');
+        Object.keys(seats).forEach(p => { if(seats[p]===sid) delete seats[p]; });
+        seats[toPos] = sid;
+      } else if (data.startsWith('seat:')) {
+        const fromPos = parseInt(data.replace('seat:',''));
+        const tmp = seats[fromPos]; seats[fromPos]=seats[toPos]; seats[toPos]=tmp;
+        if (!seats[fromPos]) delete seats[fromPos];
+        if (!seats[toPos])   delete seats[toPos];
+      }
+      this._setSeats(seats);
+      this._scheduleSave();
+      this._renderAll();
+    });
+  }
+
+  // ── Student Settings Modal ────────────────────────────────────
+  _showSettings(sid) {
+    const st = this._students[sid];
+    if (!st) return;
+    this.currentSettingsSid = sid;
+    document.getElementById('settingsName').textContent = `${st.seatNumber}號 ${st.name}`;
+    document.getElementById('settingsScore').textContent = `${this._scores[sid]||0} 分`;
+    document.getElementById('settingsReason').value = '';
+    document.getElementById('settingsAmt').value = 1;
+    this._showModal('studentSettingsModal');
+  }
+
+  _adjustScore(type) {
+    const sid = this.currentSettingsSid;
+    const reason = document.getElementById('settingsReason').value.trim();
+    if (!reason) { alert('請輸入加減分原因'); return; }
+    const amt = parseInt(document.getElementById('settingsAmt').value)||1;
+    const change = type*amt;
+    const cls = this.data.classes[this.currentClassId];
+    if (!cls.scores) cls.scores={};
+    if (!cls.scoreHistory) cls.scoreHistory={};
+    if (!cls.scoreHistory[sid]) cls.scoreHistory[sid]=[];
+    cls.scores[sid] = (cls.scores[sid]||0) + change;
+    cls.scoreHistory[sid].push({ date:new Date().toLocaleString('zh-TW'), change, reason, total:cls.scores[sid] });
+    document.getElementById('settingsScore').textContent = `${cls.scores[sid]} 分`;
+    document.getElementById('settingsReason').value = '';
+    this._scheduleSave();
+    this._renderAll();
+  }
+
+  // ── Group Score ───────────────────────────────────────────────
+  _showGroupScoreModal(g) {
+    this.currentGroupNum = g;
+    document.getElementById('groupModalTitle').textContent = `第${g}組 積分調整`;
+    document.getElementById('groupReason').value = '';
+    this._showModal('groupScoreModal');
+  }
+
+  _adjustGroupScore(type) {
+    const g = this.currentGroupNum;
+    const reason = document.getElementById('groupReason').value.trim();
+    if (!reason) { alert('請輸入原因'); return; }
+    const amt = parseInt(document.getElementById('groupScoreAmt').value)||1;
+    const change = type*amt;
+    const cls = this.data.classes[this.currentClassId];
+    if (!cls.groupScores) cls.groupScores={};
+    if (!cls.groupScoreHistory) cls.groupScoreHistory={};
+    cls.groupScores[g] = (cls.groupScores[g]||0)+change;
+    if (!cls.groupScoreHistory[g]) cls.groupScoreHistory[g]=[];
+    cls.groupScoreHistory[g].push({ date:new Date().toLocaleString('zh-TW'), change, reason, total:cls.groupScores[g] });
+    this._scheduleSave();
+    this._hideModal('groupScoreModal');
+    alert(`第${g}組 ${change>0?'+':''}${change}分 ✓`);
+  }
+
+  // ── Lottery ───────────────────────────────────────────────────
+  _startLottery(type) {
+    if (this.isLotteryRunning) return;
+    this._clearSel();
+    const seats = this._seats;
+    const eligible = [];
+    Object.entries(seats).forEach(([pos, sid]) => {
+      const st = this._students[sid];
+      if (st && (type==='all'||st.gender===type)) eligible.push({pos,st});
+    });
+    const count = parseInt(document.getElementById('lotteryCount').value)||1;
+    if (!eligible.length) { alert('沒有符合條件的學生在座位上'); return; }
+    if (count > eligible.length) { alert(`只有${eligible.length}人，不足${count}人`); return; }
+    this.isLotteryRunning = true;
+    this.flashIntervals = [];
+    eligible.forEach(({pos}) => {
+      const el = document.querySelector(`[data-position="${pos}"]`);
+      if (!el) return;
+      const iv = setInterval(()=>el.classList.toggle('lottery-flash'), 200+Math.random()*300);
+      this.flashIntervals.push(iv);
+    });
+    setTimeout(() => {
+      this.flashIntervals.forEach(iv=>clearInterval(iv));
+      this.flashIntervals=[];
+      eligible.forEach(({pos}) => {
+        const el = document.querySelector(`[data-position="${pos}"]`);
+        if (el) el.classList.remove('lottery-flash');
+      });
+      const winners = [...eligible].sort(()=>Math.random()-0.5).slice(0,count);
+      this.selectedStudents = winners;
+      winners.forEach(({pos})=>{
+        const el=document.querySelector(`[data-position="${pos}"]`);
+        if(el)el.classList.add('lottery-selected');
+      });
+      const nums = winners.map(w=>w.st.seatNumber);
+      this._speak(nums.length===1?`恭喜${nums[0]}號`:`恭喜${nums.join('號、')}號`);
+      document.getElementById('clearSelBtn').style.display='';
+      this.isLotteryRunning = false;
+    }, 3000);
+  }
+
+  _clearSel() {
+    this.flashIntervals.forEach(iv=>clearInterval(iv)); this.flashIntervals=[];
+    document.querySelectorAll('.lottery-selected,.lottery-flash').forEach(el=>{
+      el.classList.remove('lottery-selected','lottery-flash');
+    });
+    this.selectedStudents=[];
+    document.getElementById('clearSelBtn').style.display='none';
+  }
+
+  _speak(text) {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang='zh-TW'; u.rate=0.9; u.pitch=1.1;
+    const v = speechSynthesis.getVoices().find(v=>v.name.includes('Google')&&v.lang.includes('zh'));
+    if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }
+
+  // ── Timer ─────────────────────────────────────────────────────
+  _startTimer() {
+    const h=parseInt(document.getElementById('timerH').value)||0;
+    const m=parseInt(document.getElementById('timerM').value)||0;
+    const s=parseInt(document.getElementById('timerS').value)||0;
+    const total=h*3600+m*60+s;
+    if(!total){alert('請設定有效時間');return;}
+    this.timerRemaining=total; this.timerPaused=false;
+    this._hideModal('timerModal');
+    const disp=document.getElementById('timerDisplay');
+    const pauseBtn=document.getElementById('pauseTimerBtn');
+    const stopBtn=document.getElementById('stopTimerBtn');
+    disp.style.display=''; pauseBtn.style.display=''; stopBtn.style.display='';
+    const upd=()=>{
+      const h2=Math.floor(this.timerRemaining/3600);
+      const m2=Math.floor((this.timerRemaining%3600)/60);
+      const s2=this.timerRemaining%60;
+      disp.textContent=h2>0
+        ?`${String(h2).padStart(2,'0')}:${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`
+        :`${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`;
+      disp.className='timer-display'+(this.timerRemaining<=10&&this.timerRemaining>0?' urgent':'');
+    };
+    upd();
+    this.timerInterval=setInterval(()=>{
+      if(!this.timerPaused){
+        this.timerRemaining--;upd();
+        if(this.timerRemaining<=0){
+          clearInterval(this.timerInterval);
+          disp.style.display='none'; pauseBtn.style.display='none'; stopBtn.style.display='none';
+          this._playAlarm(); this._speak('時間到囉');
+          this._showModal('timeUpModal');
+        }
+      }
+    },1000);
+  }
+
+  _playAlarm() {
+    try {
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      for(let i=0;i<3;i++){
+        setTimeout(()=>{
+          const osc=ctx.createOscillator(),gain=ctx.createGain();
+          osc.connect(gain);gain.connect(ctx.destination);
+          osc.frequency.setValueAtTime(880,ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(440,ctx.currentTime+0.3);
+          gain.gain.setValueAtTime(0.3,ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+          osc.start();osc.stop(ctx.currentTime+0.5);
+        },i*600);
+      }
+    }catch(e){}
+  }
+
+  // ── Edit Student ──────────────────────────────────────────────
+  _openEditStudent(sid, defaultSeat=null) {
+    this.editingStudentId = sid;
+    const st = sid ? this._students[sid] : null;
+    document.getElementById('editStudentTitle').textContent = st?'編輯學生':'新增學生';
+    document.getElementById('editSeatNum').value = st ? st.seatNumber : (defaultSeat||'');
+    document.getElementById('editName').value = st ? st.name : '';
+    document.getElementById('editGender').value = st ? st.gender : 'male';
+    document.getElementById('deleteStudentBtn').style.display = st?'':'none';
+    this._showModal('editStudentModal');
+  }
+
+  _saveStudent() {
+    const sn=parseInt(document.getElementById('editSeatNum').value);
+    const name=document.getElementById('editName').value.trim();
+    const gender=document.getElementById('editGender').value;
+    if(!name){alert('請輸入姓名');return;}
+    const cls=this.data.classes[this.currentClassId];
+    if(!cls.students)cls.students={};
+    if(this.editingStudentId){
+      const st=cls.students[this.editingStudentId];
+      if(st){st.seatNumber=sn;st.name=name;st.gender=gender;}
+    } else {
+      const id=`s${Date.now()}`;
+      cls.students[id]={id,seatNumber:sn,name,gender};
     }
+    this._scheduleSave();this._renderAll();this._hideModal('editStudentModal');
+  }
+
+  _deleteStudent() {
+    if(!this.editingStudentId||!confirm('確定刪除？'))return;
+    const cls=this.data.classes[this.currentClassId];
+    const sid=this.editingStudentId;
+    delete cls.students[sid];
+    ['normalSeats','groupSeats','examSeats','freeSeats'].forEach(k=>{
+      const s=cls[k]||{};
+      Object.keys(s).forEach(p=>{if(s[p]===sid)delete s[p];});
+    });
+    delete (cls.scores||{})[sid];
+    delete (cls.scoreHistory||{})[sid];
+    if(this.data.homeworkNotes)delete this.data.homeworkNotes[sid];
+    this._scheduleSave();this._renderAll();this._hideModal('editStudentModal');
+  }
+
+  // ── Bulk edit ─────────────────────────────────────────────────
+  _showBulkEdit() {
+    const c=document.getElementById('bulkEditList');c.innerHTML='';
+    for(let i=1;i<=40;i++){
+      const st=Object.values(this._students).find(s=>s.seatNumber===i);
+      const chip=document.createElement('div');
+      chip.style.cssText='aspect-ratio:1;background:white;border:1.5px solid #e2e8f0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:5px;font-size:0.65rem;text-align:center;transition:all 0.15s;';
+      if(st){
+        chip.innerHTML=`<div style="font-weight:700;color:#3b82f6;">${i}</div><div style="color:#374151;">${st.name.slice(0,3)}</div>`;
+        chip.addEventListener('mouseenter',()=>chip.style.borderColor='#93c5fd');
+        chip.addEventListener('mouseleave',()=>chip.style.borderColor='#e2e8f0');
+        chip.onclick=()=>{this._hideModal('bulkEditModal');this._openEditStudent(st.id);};
+      } else {
+        chip.innerHTML=`<div style="color:#94a3b8;">${i}</div><div style="color:#94a3b8;font-size:0.55rem;">空</div>`;
+        chip.style.borderStyle='dashed';
+        chip.onclick=()=>{this._hideModal('bulkEditModal');this._openEditStudent(null,i);};
+      }
+      c.appendChild(chip);
+    }
+    this._showModal('bulkEditModal');
+  }
+
+  // ── Scores ────────────────────────────────────────────────────
+  _showScores() {
+    const sorted=Object.values(this._students)
+      .map(st=>({...st,score:this._scores[st.id]||0}))
+      .sort((a,b)=>b.score-a.score);
+    const list=document.getElementById('scoresList');list.innerHTML='';
+    sorted.forEach((st,i)=>{
+      const row=document.createElement('div');row.className='score-row';
+      row.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
+          <span style="font-size:0.875rem;">${st.seatNumber}號 ${st.name}</span>
+        </div>
+        <span style="font-weight:700;color:#3b82f6;font-size:0.95rem;">${st.score} 分</span>
+      `;
+      list.appendChild(row);
+    });
+    this._showModal('scoresModal');
+  }
+
+  _showGroupScores() {
+    const gs=this._cls.groupScores||{};
+    const groups=Array.from({length:6},(_,i)=>({g:i+1,score:gs[i+1]||0})).sort((a,b)=>b.score-a.score);
+    const list=document.getElementById('groupScoresList');list.innerHTML='';
+    groups.forEach((g,i)=>{
+      const row=document.createElement('div');row.className='score-row';
+      row.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
+          <span style="font-size:0.875rem;">第${g.g}組</span>
+        </div>
+        <span style="font-weight:700;color:#10b981;font-size:0.95rem;">${g.score} 分</span>
+      `;
+      list.appendChild(row);
+    });
+    this._showModal('groupScoresModal');
+  }
+
+  // ── History ───────────────────────────────────────────────────
+  _showHistory(sid) {
+    const st=this._students[sid];if(!st)return;
+    const history=(this._cls.scoreHistory||{})[sid]||[];
+    document.getElementById('historyTitle').textContent=`${st.seatNumber}號 ${st.name} 的積分記錄`;
+    const list=document.getElementById('historyList');list.innerHTML='';
+    if(!history.length){list.innerHTML='<div style="color:#94a3b8;text-align:center;padding:1rem;">暫無記錄</div>';return;}
+    [...history].reverse().forEach(r=>{
+      const d=document.createElement('div');
+      d.className=`history-entry ${r.change>0?'pos':'neg'}`;
+      d.innerHTML=`
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+          <span style="font-size:0.72rem;color:#94a3b8;">${r.date}</span>
+          <span style="font-weight:700;color:${r.change>0?'#10b981':'#ef4444'};">${r.change>0?'+':''}${r.change}分</span>
+        </div>
+        <div style="font-size:0.82rem;">${r.reason}</div>
+        <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">累積：${r.total}分</div>
+      `;
+      list.appendChild(d);
+    });
+    this._showModal('historyModal');
+  }
+
+  // ── Homework ──────────────────────────────────────────────────
+  _showHomework() {
+    const sid=this.currentSettingsSid;
+    const st=this._students[sid];if(!st)return;
+    document.getElementById('homeworkTitle').textContent=`作業管理 - ${st.name}`;
+    document.getElementById('newHwInput').value='';
+    this._renderHwList();
+    this._showModal('homeworkModal');
+  }
+
+  _renderHwList() {
+    const sid=this.currentSettingsSid;
+    const list=(this._hw[sid]||[]);
+    const c=document.getElementById('homeworkList');c.innerHTML='';
+    if(!list.length){c.innerHTML='<div style="color:#94a3b8;font-size:0.82rem;">目前沒有未交作業 ✓</div>';return;}
+    list.forEach((hw,i)=>{
+      const d=document.createElement('div');d.className='hw-item';
+      d.innerHTML=`<span>⭐ ${hw.name} <span style="color:#94a3b8;font-size:0.7rem;">${hw.date}</span></span>`;
+      const btn=document.createElement('button');
+      btn.className='btn btn-green btn-sm';btn.textContent='已交';
+      btn.onclick=()=>{
+        list.splice(i,1);
+        if(!list.length)delete this.data.homeworkNotes[sid];
+        this._renderHwList();
+      };
+      d.appendChild(btn);c.appendChild(d);
+    });
+  }
+
+  // ── Random Seating ────────────────────────────────────────────
+  _randomSeating() {
+    if(!confirm('確定隨機安排座位？'))return;
+    const maxPos=this.currentMode==='exam'?36:30;
+    const positions=Array.from({length:maxPos},(_,i)=>i).sort(()=>Math.random()-0.5);
+    const students=Object.values(this._students).sort(()=>Math.random()-0.5);
+    const seats={};
+    students.forEach((st,i)=>{if(i<positions.length)seats[positions[i]]=st.id;});
+    this._setSeats(seats);this._scheduleSave();this._renderSeats();
+  }
+
+  // ── Export CSV ────────────────────────────────────────────────
+  _exportCSV() {
+    const rows=[['座號','姓名','性別','積分']];
+    Object.values(this._students).sort((a,b)=>a.seatNumber-b.seatNumber).forEach(st=>{
+      rows.push([st.seatNumber,st.name,st.gender==='male'?'男':'女',this._scores[st.id]||0]);
+    });
+    const csv='\uFEFF'+rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`${this._cls.name||'班級'}_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'')}.csv`;
+    a.click();
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────────
+  _showModal(id){document.getElementById(id).classList.add('show');}
+  _hideModal(id){document.getElementById(id).classList.remove('show');}
+
+  // ── Event Binding ─────────────────────────────────────────────
+  _bindEvents() {
+    // Google Login
+    document.getElementById('googleLoginBtn')?.addEventListener('click',async()=>{
+      try{
+        const p=new window._GoogleAuthProvider();
+        await window._signInWithPopup(window._auth,p);
+      }catch(e){alert('登入失敗：'+e.message);}
+    });
+
+    // Sign out
+    document.getElementById('signoutBtn')?.addEventListener('click',async()=>{
+      if(confirm('確定登出？'))await window._signOut(window._auth);
+    });
+
+    // Add Class
+    document.getElementById('addClassBtn')?.addEventListener('click',()=>{
+      if(Object.keys(this.data?.classes||{}).length>=15){alert('最多可建立15個班級');return;}
+      document.getElementById('newClassName').value='';
+      this._showModal('addClassModal');
+    });
+    document.getElementById('confirmAddClass')?.addEventListener('click',()=>{
+      const name=document.getElementById('newClassName').value.trim();
+      if(!name){alert('請輸入班級名稱');return;}
+      const id=`class${Date.now()}`;
+      this.data.classes[id]=this._newClass(name);
+      this.currentClassId=id;
+      document.getElementById('newClassName').value='';
+      this._hideModal('addClassModal');
+      this._renderTabs();this._renderAll();this._scheduleSave();
+    });
+    document.getElementById('cancelAddClass')?.addEventListener('click',()=>this._hideModal('addClassModal'));
+
+    // Rename Class
+    document.getElementById('confirmRename')?.addEventListener('click',()=>{
+      const name=document.getElementById('renameClassInput').value.trim();
+      if(!name){alert('請輸入名稱');return;}
+      this.data.classes[this.renamingClassId].name=name;
+      this._renderTabs();this._scheduleSave();this._hideModal('renameClassModal');
+    });
+    document.getElementById('deleteClassBtn')?.addEventListener('click',()=>{
+      if(Object.keys(this.data.classes).length<=1){alert('至少需要保留一個班級');return;}
+      if(!confirm('確定刪除這個班級？所有資料將消失！'))return;
+      delete this.data.classes[this.renamingClassId];
+      const ids=Object.keys(this.data.classes);
+      this.currentClassId=ids[0];
+      this._renderTabs();this._renderAll();this._scheduleSave();this._hideModal('renameClassModal');
+    });
+    document.getElementById('cancelRename')?.addEventListener('click',()=>this._hideModal('renameClassModal'));
+
+    // Mode buttons
+    const modeMap={modeNormal:'normal',modeGroup:'group',modeExam:'exam',modeFree:'free'};
+    const modeLabels={normal:'一般座位模式',group:'小組座位模式',exam:'考試座位模式',free:'自由座位模式'};
+    Object.entries(modeMap).forEach(([btnId,mode])=>{
+      document.getElementById(btnId)?.addEventListener('click',()=>{
+        this.currentMode=mode;
+        Object.keys(modeMap).forEach(b=>{
+          const el=document.getElementById(b);
+          if(el)el.className=b===btnId?'btn btn-primary active':'btn btn-outline';
+        });
+        document.getElementById('modeLabel').textContent=modeLabels[mode];
+        this._renderSeats();
+      });
+    });
+
+    // Student view
+    document.getElementById('studentViewBtn')?.addEventListener('click',()=>{
+      this.isStudentView=!this.isStudentView;
+      const btn=document.getElementById('studentViewBtn');
+      btn.textContent=this.isStudentView?'老師視角':'學生視角';
+      btn.className=this.isStudentView?'btn btn-amber':'btn btn-outline';
+      this._renderSeats();
+    });
+
+    // Scores
+    document.getElementById('showScoresBtn')?.addEventListener('click',()=>this._showScores());
+    document.getElementById('closeScoresBtn')?.addEventListener('click',()=>this._hideModal('scoresModal'));
+    document.getElementById('resetAllScoresBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定重置全部積分？'))return;
+      const cls=this.data.classes[this.currentClassId];
+      cls.scores={};cls.scoreHistory={};
+      this._scheduleSave();this._hideModal('scoresModal');
+    });
+
+    // Group Scores
+    document.getElementById('showGroupScoresBtn')?.addEventListener('click',()=>this._showGroupScores());
+    document.getElementById('closeGroupScoresBtn')?.addEventListener('click',()=>this._hideModal('groupScoresModal'));
+    document.getElementById('resetGroupScoresBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定重置小組積分？'))return;
+      const cls=this.data.classes[this.currentClassId];
+      cls.groupScores={};cls.groupScoreHistory={};
+      this._scheduleSave();this._hideModal('groupScoresModal');
+    });
+
+    // Group score modal
+    document.getElementById('addGroupBtn')?.addEventListener('click',()=>this._adjustGroupScore(1));
+    document.getElementById('subGroupBtn')?.addEventListener('click',()=>this._adjustGroupScore(-1));
+    document.getElementById('cancelGroupScore')?.addEventListener('click',()=>this._hideModal('groupScoreModal'));
+    document.getElementById('confirmGroupScore')?.addEventListener('click',()=>{}); // handled by add/sub
+    document.querySelectorAll('.group-reason').forEach(btn=>{
+      btn.addEventListener('click',()=>{document.getElementById('groupReason').value=btn.dataset.r;});
+    });
+
+    // Lottery
+    document.getElementById('lotteryAllBtn')?.addEventListener('click',()=>this._startLottery('all'));
+    document.getElementById('lotteryBoysBtn')?.addEventListener('click',()=>this._startLottery('male'));
+    document.getElementById('lotteryGirlsBtn')?.addEventListener('click',()=>this._startLottery('female'));
+    document.getElementById('clearSelBtn')?.addEventListener('click',()=>this._clearSel());
+
+    // Timer
+    document.getElementById('timerBtn')?.addEventListener('click',()=>this._showModal('timerModal'));
+    document.getElementById('startTimerBtn')?.addEventListener('click',()=>this._startTimer());
+    document.getElementById('cancelTimerBtn')?.addEventListener('click',()=>this._hideModal('timerModal'));
+    document.getElementById('pauseTimerBtn')?.addEventListener('click',()=>{
+      this.timerPaused=!this.timerPaused;
+      document.getElementById('pauseTimerBtn').textContent=this.timerPaused?'繼續':'暫停';
+    });
+    document.getElementById('stopTimerBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定停止計時器？'))return;
+      clearInterval(this.timerInterval);this.timerInterval=null;this.timerPaused=false;
+      document.getElementById('timerDisplay').style.display='none';
+      document.getElementById('pauseTimerBtn').style.display='none';
+      document.getElementById('stopTimerBtn').style.display='none';
+    });
+    document.querySelectorAll('.quick-time').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const m=parseInt(btn.dataset.m);
+        document.getElementById('timerH').value=Math.floor(m/60);
+        document.getElementById('timerM').value=m%60;
+        document.getElementById('timerS').value=0;
+      });
+    });
+    document.getElementById('closeTimeUpBtn')?.addEventListener('click',()=>this._hideModal('timeUpModal'));
+
+    // Student settings
+    document.getElementById('settingsAddBtn')?.addEventListener('click',()=>this._adjustScore(1));
+    document.getElementById('settingsSubBtn')?.addEventListener('click',()=>this._adjustScore(-1));
+    document.getElementById('settingsConfirmBtn')?.addEventListener('click',()=>this._adjustScore(
+      document.getElementById('settingsReason').value.trim()?
+        (parseInt(document.getElementById('settingsAmt').value)||1)>0?1:1 : 0
+    ));
+    document.querySelectorAll('.settings-qs').forEach(btn=>{
+      btn.addEventListener('click',()=>{document.getElementById('settingsAmt').value=btn.dataset.s;});
+    });
+    document.querySelectorAll('.settings-reason').forEach(btn=>{
+      btn.addEventListener('click',()=>{document.getElementById('settingsReason').value=btn.dataset.r;});
+    });
+    document.getElementById('settingsHistoryBtn')?.addEventListener('click',()=>{
+      const sid=this.currentSettingsSid;
+      this._hideModal('studentSettingsModal');
+      this._showHistory(sid);
+    });
+    document.getElementById('settingsEditBtn')?.addEventListener('click',()=>{
+      const sid=this.currentSettingsSid;
+      this._hideModal('studentSettingsModal');
+      this._openEditStudent(sid);
+    });
+    document.getElementById('settingsHomeworkBtn')?.addEventListener('click',()=>this._showHomework());
+    document.getElementById('closeSettingsBtn')?.addEventListener('click',()=>this._hideModal('studentSettingsModal'));
+
+    // Edit Student
+    document.getElementById('editStudentsBtn')?.addEventListener('click',()=>this._showBulkEdit());
+    document.getElementById('saveStudentBtn')?.addEventListener('click',()=>this._saveStudent());
+    document.getElementById('deleteStudentBtn')?.addEventListener('click',()=>this._deleteStudent());
+    document.getElementById('cancelEditStudent')?.addEventListener('click',()=>this._hideModal('editStudentModal'));
+    document.getElementById('closeBulkEdit')?.addEventListener('click',()=>this._hideModal('bulkEditModal'));
+
+    // History
+    document.getElementById('closeHistoryBtn')?.addEventListener('click',()=>this._hideModal('historyModal'));
+
+    // Homework
+    document.getElementById('addHwBtn')?.addEventListener('click',()=>{
+      const name=document.getElementById('newHwInput').value.trim();
+      if(!name){alert('請輸入作業名稱');return;}
+      const sid=this.currentSettingsSid;
+      if(!this.data.homeworkNotes)this.data.homeworkNotes={};
+      if(!this.data.homeworkNotes[sid])this.data.homeworkNotes[sid]=[];
+      if(this.data.homeworkNotes[sid].some(h=>h.name===name)){alert('已有相同作業');return;}
+      this.data.homeworkNotes[sid].push({name,date:new Date().toLocaleDateString('zh-TW')});
+      document.getElementById('newHwInput').value='';
+      this._renderHwList();
+    });
+    document.getElementById('saveHwBtn')?.addEventListener('click',()=>{
+      this._scheduleSave();this._renderAll();this._hideModal('homeworkModal');
+    });
+    document.getElementById('closeHwBtn')?.addEventListener('click',()=>this._hideModal('homeworkModal'));
+
+    // Random / Reset
+    document.getElementById('randomBtn')?.addEventListener('click',()=>this._randomSeating());
+    document.getElementById('resetBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定重置座位？'))return;
+      this._setSeats({});this._scheduleSave();this._renderSeats();
+    });
+
+    // Export
+    document.getElementById('exportBtn')?.addEventListener('click',()=>this._exportCSV());
+
+    // Seat size slider
+    document.getElementById('seatSizeSlider')?.addEventListener('input',e=>{
+      this.seatSize=parseInt(e.target.value);
+      this._renderSeats();
+    });
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+      overlay.addEventListener('click',e=>{
+        if(e.target===overlay)overlay.classList.remove('show');
+      });
+    });
+  }
 }
 
-// 起動
 const app = new ClassroomApp();
 </script>
 </body>
