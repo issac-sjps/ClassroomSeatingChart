@@ -8,23 +8,20 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
-            from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+            from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } 
-            from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+            from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
 
-        // ============================================================
-        // ⚙️ 設定 Firebase - 請將下方替換成你的 Firebase 專案設定
-        // 步驟：https://console.firebase.google.com/ → 建立專案 → 新增網頁應用程式
-        // ============================================================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBAbSddZ6VsHjw-NjW77kxS8iuC5-cW_wY",
+            authDomain: "sjps-classroomseatchart.firebaseapp.com",
+            projectId: "sjps-classroomseatchart",
+            storageBucket: "sjps-classroomseatchart.firebasestorage.app",
+            messagingSenderId: "812781751431",
+            appId: "1:812781751431:web:3cad939d2c29fbbde67c22",
+            measurementId: "G-Q74G95W8P8"
         };
 
         // 初始化 Firebase
