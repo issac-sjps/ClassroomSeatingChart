@@ -35,7 +35,11 @@
   window._fsDoc = doc;
   window._fsSetDoc = setDoc;
   window._fsGetDoc = getDoc;
+  window._firebaseReady = true;
+  // 給已經在等待的 ClassroomApp 觸發
   window.dispatchEvent(new Event('firebaseReady'));
+  // 也給還沒跑到的 ClassroomApp 一個 callback slot
+  if (typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
@@ -667,11 +671,38 @@ class ClassroomApp {
     // Free seat drag state
     this.freeDrag = null;
 
-    if (window._auth) this._init();
-    else window.addEventListener('firebaseReady', () => this._init());
+    this._tryInit();
+  }
+
+  _tryInit() {
+    if (window._firebaseReady && window._auth) {
+      this._init();
+    } else {
+      // 還沒好，用兩種方式等
+      window.addEventListener('firebaseReady', () => this._init(), { once: true });
+      window._onFirebaseReady = () => this._init();
+      // 最後保險：3秒後還沒好就顯示錯誤
+      setTimeout(() => {
+        if (!this.user && !document.getElementById('loginScreen').style.display.includes('flex')) {
+          if (!window._firebaseReady) {
+            document.getElementById('loadingScreen').innerHTML =
+              '<div style="text-align:center;padding:2rem;">' +
+              '<div style="font-size:2rem;margin-bottom:1rem;">⚠️</div>' +
+              '<div style="font-weight:600;color:#1e293b;margin-bottom:0.5rem;">Firebase 載入失敗</div>' +
+              '<div style="font-size:0.85rem;color:#64748b;margin-bottom:1.5rem;">請確認網路連線，或重新整理頁面</div>' +
+              '<button onclick="location.reload()" style="padding:0.6rem 1.5rem;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;">🔄 重新整理</button>' +
+              '</div>';
+          }
+        }
+      }, 8000);
+    }
   }
 
   _init() {
+    // 若已呼叫超過一次，直接忽略
+    if (this._initCalled) return;
+    this._initCalled = true;
+
     window._onAuthStateChanged(window._auth, async user => {
       document.getElementById('loadingScreen').style.display = 'none';
       if (user) {
