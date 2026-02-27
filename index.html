@@ -122,16 +122,21 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 #studentList::-webkit-scrollbar{width:4px;}
 #studentList::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
 
-.s-chip{border-radius:8px;border:1.5px solid #ddd6fe;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 2px;cursor:move;transition:all 0.15s;aspect-ratio:1;text-align:center;box-shadow:0 1px 3px rgba(109,40,217,0.08);}
-.s-chip:hover{border-color:#a78bfa;background:#ede9fe;transform:scale(1.05);box-shadow:0 3px 8px rgba(109,40,217,0.18);}
+.s-chip{border-radius:8px;border:1.5px solid #e2e8f0;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 2px;cursor:move;transition:all 0.15s;aspect-ratio:1;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.07);}
 .s-chip.dragging{opacity:0.5;transform:rotate(4deg) scale(1.08);}
-.s-chip .sn{font-size:0.7rem;font-weight:700;color:#3b82f6;line-height:1;}
-.s-chip .nm{font-size:0.6rem;color:#374151;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
-.s-chip .gd{width:5px;height:5px;border-radius:50%;margin-top:2px;}
-.gd-m{background:#60a5fa;}
-.gd-f{background:#f472b6;}
-.s-chip.empty{border-style:dashed;cursor:pointer;}
-.s-chip.empty:hover{border-color:#6ee7b7;background:#f0fdf4;}
+/* 男生 chip */
+.s-chip-male{background:linear-gradient(150deg,#dbeafe,#bfdbfe);border-color:#93c5fd;}
+.s-chip-male:hover{border-color:#3b82f6;transform:scale(1.06);box-shadow:0 3px 8px rgba(59,130,246,0.2);}
+.s-chip-male .sn{font-size:0.7rem;font-weight:700;color:#1e40af;line-height:1;}
+.s-chip-male .nm{font-size:0.6rem;color:#1e3a8a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+/* 女生 chip */
+.s-chip-female{background:linear-gradient(150deg,#fee2e2,#fecaca);border-color:#fca5a5;}
+.s-chip-female:hover{border-color:#ef4444;transform:scale(1.06);box-shadow:0 3px 8px rgba(239,68,68,0.2);}
+.s-chip-female .sn{font-size:0.7rem;font-weight:700;color:#991b1b;line-height:1;}
+.s-chip-female .nm{font-size:0.6rem;color:#7f1d1d;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+/* 空格 */
+.s-chip.empty{border-style:dashed;border-color:#d8b4fe;cursor:pointer;}
+.s-chip.empty:hover{border-color:#a78bfa;background:#f5f3ff;}
 
 /* ── Classroom Panel ── */
 .classroom-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fefce8;}
@@ -147,11 +152,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 
 /* ── Normal/Exam Seat ── */
 .seat{background:white;border:1.5px solid #e2e8f0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-.seat:hover{border-color:#93c5fd;box-shadow:0 2px 8px rgba(59,130,246,0.12);}
-.seat.occupied{background:#eff6ff;border-color:#bfdbfe;}
-.seat.occupied:hover{border-color:#3b82f6;box-shadow:0 4px 12px rgba(59,130,246,0.18);}
-.seat .seat-no{font-size:0.65rem;font-weight:700;color:#3b82f6;line-height:1;}
-.seat .seat-nm{font-size:0.78rem;font-weight:600;color:#1e293b;line-height:1.2;}
+.seat:hover{box-shadow:0 3px 10px rgba(0,0,0,0.14);transform:translateY(-1px);}
+/* 空位 */
+.seat.empty-seat{background:white;border-color:#e2e8f0;}
+/* 男生座位 - 藍色系 */
+.seat.seat-male{background:linear-gradient(160deg,#dbeafe 0%,#bfdbfe 100%);border-color:#93c5fd;}
+.seat.seat-male:hover{border-color:#3b82f6;box-shadow:0 3px 12px rgba(59,130,246,0.25);}
+.seat.seat-male .seat-no{color:#1e40af;}
+.seat.seat-male .seat-nm{color:#1e3a8a;}
+/* 女生座位 - 紅/玫瑰色系 */
+.seat.seat-female{background:linear-gradient(160deg,#fee2e2 0%,#fecaca 100%);border-color:#fca5a5;}
+.seat.seat-female:hover{border-color:#ef4444;box-shadow:0 3px 12px rgba(239,68,68,0.25);}
+.seat.seat-female .seat-no{color:#991b1b;}
+.seat.seat-female .seat-nm{color:#7f1d1d;}
 .seat .seat-hw{font-size:0.55rem;color:#f59e0b;line-height:1;}
 .seat.drop-zone{border-color:#10b981!important;background:#f0fdf4!important;transform:scale(1.05);}
 
@@ -175,11 +188,17 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
   radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0);
 background-size:28px 28px;min-height:500px;}
 .free-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#94a3b8;font-size:0.9rem;text-align:center;pointer-events:none;user-select:none;}
-.free-seat{position:absolute;background:white;border:1.5px solid #c4b5fd;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:move;user-select:none;transition:box-shadow 0.15s;}
-.free-seat:hover{box-shadow:0 4px 16px rgba(139,92,246,0.2);border-color:#8b5cf6;}
+.free-seat{position:absolute;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:move;user-select:none;transition:box-shadow 0.15s,transform 0.1s;}
+.free-seat:hover{transform:translateY(-2px);}
 .free-seat.dragging-free{opacity:0.7;box-shadow:0 8px 24px rgba(0,0,0,0.15);}
-.free-seat .seat-no{font-size:0.65rem;font-weight:700;color:#7c3aed;}
-.free-seat .seat-nm{font-size:0.78rem;font-weight:600;color:#1e293b;}
+.free-seat-male{background:linear-gradient(160deg,#dbeafe,#bfdbfe);border:1.5px solid #93c5fd;}
+.free-seat-male:hover{border-color:#3b82f6;box-shadow:0 4px 14px rgba(59,130,246,0.3);}
+.free-seat-male .seat-no{font-size:0.65rem;font-weight:700;color:#1e40af;}
+.free-seat-male .seat-nm{font-size:0.78rem;font-weight:600;color:#1e3a8a;}
+.free-seat-female{background:linear-gradient(160deg,#fee2e2,#fecaca);border:1.5px solid #fca5a5;}
+.free-seat-female:hover{border-color:#ef4444;box-shadow:0 4px 14px rgba(239,68,68,0.3);}
+.free-seat-female .seat-no{font-size:0.65rem;font-weight:700;color:#991b1b;}
+.free-seat-female .seat-nm{font-size:0.78rem;font-weight:600;color:#7f1d1d;}
 .free-seat .seat-hw{font-size:0.55rem;color:#f59e0b;}
 #freeArea.drop-active{background-color:rgba(139,92,246,0.04);}
 
@@ -307,21 +326,24 @@ background-size:28px 28px;min-height:500px;}
     <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
     <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
     <div class="divider"></div>
-    <!-- Timer -->
-    <button class="btn btn-green" id="timerBtn">⏱ 計時器</button>
-    <span class="timer-display" id="timerDisplay" style="display:none;">00:00</span>
-    <button class="btn btn-outline btn-sm" id="pauseTimerBtn" style="display:none;">暫停</button>
-    <button class="btn btn-gray btn-sm" id="stopTimerBtn" style="display:none;">停止</button>
-    <div class="divider"></div>
-    <!-- Lottery -->
-    <span style="font-size:0.78rem;color:#64748b;">抽</span>
-    <input type="number" id="lotteryCount" value="1" min="1" max="10"
-      style="width:40px;padding:3px 5px;border:1.5px solid #e2e8f0;border-radius:6px;text-align:center;font-size:0.8rem;color:#1e293b;">
-    <span style="font-size:0.78rem;color:#64748b;">人</span>
-    <button class="btn btn-amber" id="lotteryAllBtn">全部抽籤</button>
-    <button class="btn btn-primary" id="lotteryBoysBtn">男生抽籤</button>
-    <button class="btn btn-outline" id="lotteryGirlsBtn" style="color:#db2777;border-color:#fbcfe8;">女生抽籤</button>
-    <button class="btn btn-gray" id="clearSelBtn" style="display:none;">取消標記</button>
+    <!-- 右側區塊：抽籤 + 計時器 -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
+      <!-- Lottery -->
+      <span style="font-size:0.78rem;color:#374151;">抽</span>
+      <input type="number" id="lotteryCount" value="1" min="1" max="10"
+        style="width:40px;padding:3px 5px;border:1.5px solid #e2e8f0;border-radius:6px;text-align:center;font-size:0.8rem;color:#1e293b;background:white;">
+      <span style="font-size:0.78rem;color:#374151;">人</span>
+      <button class="btn btn-amber" id="lotteryAllBtn">全部抽籤</button>
+      <button class="btn btn-primary" id="lotteryBoysBtn">男生抽籤</button>
+      <button class="btn btn-red" id="lotteryGirlsBtn">女生抽籤</button>
+      <button class="btn btn-gray" id="clearSelBtn" style="display:none;">取消標記</button>
+      <div class="divider"></div>
+      <!-- Timer -->
+      <button class="btn btn-green" id="timerBtn">⏱ 計時器</button>
+      <span class="timer-display" id="timerDisplay" style="display:none;">00:00</span>
+      <button class="btn btn-outline btn-sm" id="pauseTimerBtn" style="display:none;">暫停</button>
+      <button class="btn btn-gray btn-sm" id="stopTimerBtn" style="display:none;">停止</button>
+    </div>
   </div>
 
   <!-- Main -->
@@ -828,13 +850,12 @@ class ClassroomApp {
       const chip = document.createElement('div');
       if (st) {
         const hw = this._hwCount(st.id);
-        chip.className = 's-chip';
+        chip.className = 's-chip ' + (st.gender === 'male' ? 's-chip-male' : 's-chip-female');
         chip.draggable = true;
         chip.dataset.studentId = st.id;
         chip.innerHTML = `
           <div class="sn">${st.seatNumber}</div>
           <div class="nm">${st.name.length>3?st.name.slice(0,3):st.name}</div>
-          <div class="gd ${st.gender==='male'?'gd-m':'gd-f'}"></div>
           ${hw>0?`<div style="font-size:0.5rem;color:#f59e0b;">${'★'.repeat(Math.min(hw,3))}</div>`:''}
         `;
         chip.addEventListener('dragstart', e => {
@@ -947,7 +968,8 @@ class ClassroomApp {
     if (sid) {
       const st = this._students[sid];
       if (st) {
-        el.classList.add('occupied');
+        // 性別底色
+        el.classList.add(st.gender === 'male' ? 'seat-male' : 'seat-female');
         const hw = this._hwCount(st.id);
         const nameSz = Math.max(10, Math.round(sz*0.13));
         const numSz  = Math.max(9,  Math.round(sz*0.11));
@@ -965,6 +987,7 @@ class ClassroomApp {
         });
       }
     } else {
+      el.classList.add('empty-seat');
       const hintSz = Math.max(9, Math.round(sz*0.1));
       el.innerHTML = `<div style="color:#cbd5e1;font-size:${hintSz}px;">空位</div>`;
     }
@@ -1032,7 +1055,7 @@ class ClassroomApp {
 
   _mkFreeSeat(posKey, st, x, y, sz) {
     const el = document.createElement('div');
-    el.className = 'free-seat';
+    el.className = 'free-seat ' + (st.gender === 'male' ? 'free-seat-male' : 'free-seat-female');
     el.dataset.posKey = posKey;
     el.style.left = x+'px';
     el.style.top  = y+'px';
