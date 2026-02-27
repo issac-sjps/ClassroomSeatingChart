@@ -88,6 +88,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 .sync-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;}
 .sync-dot.syncing{background:#f59e0b;animation:blink 0.6s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-5px);}40%,80%{transform:translateX(5px);}}
 
 /* ── Control Panel ── */
 .ctrl-panel{background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border-bottom:2px solid #bbf7d0;padding:0.6rem 1.25rem;display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0;}
@@ -110,6 +111,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 .btn-gray{background:#f1f5f9;color:#475569;border-color:#e2e8f0;}
 .btn-gray:hover{background:#e2e8f0;}
 .btn-sm{padding:0.25rem 0.625rem;font-size:0.75rem;}
+.btn-view{background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border-color:#b45309;font-weight:600;}
+.btn-view:hover{background:linear-gradient(135deg,#d97706,#b45309);transform:translateY(-1px);}
+.btn-view-active{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border-color:#5b21b6;font-weight:600;}
+.btn-view-active:hover{background:linear-gradient(135deg,#6d28d9,#5b21b6);transform:translateY(-1px);}
+.btn-score-add{background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:10px;padding:0.65rem;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.15s;box-shadow:0 3px 10px rgba(22,163,74,0.3);}
+.btn-score-add:hover{background:linear-gradient(135deg,#16a34a,#15803d);transform:translateY(-2px);box-shadow:0 5px 16px rgba(22,163,74,0.4);}
+.btn-score-sub{background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;padding:0.65rem;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.15s;box-shadow:0 3px 10px rgba(220,38,38,0.3);}
+.btn-score-sub:hover{background:linear-gradient(135deg,#dc2626,#b91c1c);transform:translateY(-2px);box-shadow:0 5px 16px rgba(220,38,38,0.4);}
 
 /* ── Main Content ── */
 .main-content{display:flex;flex:1;overflow:hidden;}
@@ -242,6 +251,9 @@ background-size:28px 28px;min-height:500px;}
 
 /* ── Quick reason buttons ── */
 .qr-btn{padding:4px 8px;font-size:0.72rem;border-radius:6px;cursor:pointer;border:1px solid;transition:all 0.15s;}
+.score-bubble{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#e0f2fe,#bae6fd);border:2px solid #7dd3fc;color:#0369a1;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.score-bubble:hover{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border-color:#1d4ed8;transform:scale(1.15);box-shadow:0 4px 12px rgba(59,130,246,0.35);}
+.score-bubble.active{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border-color:#1d4ed8;box-shadow:0 2px 8px rgba(59,130,246,0.4);}
 .qr-pos{background:#f0fdf4;color:#059669;border-color:#a7f3d0;}
 .qr-pos:hover{background:#dcfce7;}
 .qr-neg{background:#fef2f2;color:#dc2626;border-color:#fecaca;}
@@ -258,6 +270,9 @@ background-size:28px 28px;min-height:500px;}
 
 /* ── Rename inline input ── */
 .rename-input{border:1.5px solid #93c5fd;border-radius:6px;padding:2px 6px;font-size:0.82rem;font-family:'Noto Sans TC',sans-serif;outline:none;max-width:120px;}
+.tab-switch{padding:0.3rem 0.875rem;font-size:0.78rem;font-weight:600;border:1.5px solid #e2e8f0;border-radius:7px;background:#f8fafc;color:#64748b;cursor:pointer;transition:all 0.15s;}
+.tab-switch.active{background:#3b82f6;color:white;border-color:#3b82f6;}
+.tab-switch:hover:not(.active){background:#eff6ff;border-color:#93c5fd;color:#3b82f6;}
 </style>
 </head>
 <body>
@@ -322,7 +337,7 @@ background-size:28px 28px;min-height:500px;}
     <button class="btn btn-outline" id="modeFree">自由座位</button>
     <div class="divider"></div>
     <!-- Views & Scores -->
-    <button class="btn btn-outline" id="studentViewBtn">學生視角</button>
+    <button class="btn btn-view" id="studentViewBtn">👤 學生視角</button>
     <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
     <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
     <div class="divider"></div>
@@ -437,10 +452,36 @@ background-size:28px 28px;min-height:500px;}
 
 <!-- Bulk Edit -->
 <div class="modal-overlay" id="bulkEditModal">
-  <div class="modal-box" style="max-width:520px;">
-    <div class="modal-title">編輯學生名單</div>
-    <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:0.875rem;">點擊學生可編輯 · 空格可新增</div>
-    <div id="bulkEditList" style="max-height:420px;overflow-y:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>
+  <div class="modal-box" style="max-width:540px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div class="modal-title" style="margin-bottom:0;">編輯學生名單</div>
+      <div style="display:flex;gap:6px;">
+        <button class="tab-switch active" id="switchGrid" onclick="app._switchBulkTab('grid')">格子編輯</button>
+        <button class="tab-switch" id="switchImport" onclick="app._switchBulkTab('import')">📥 快速匯入</button>
+      </div>
+    </div>
+    <!-- 格子模式 -->
+    <div id="bulkGridView">
+      <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:0.875rem;">點擊學生可編輯 · 空格可新增</div>
+      <div id="bulkEditList" style="max-height:380px;overflow-y:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>
+    </div>
+    <!-- 快速匯入模式 -->
+    <div id="bulkImportView" style="display:none;">
+      <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.75rem;">
+        📝 每行一個學生，格式：<code style="background:#fef3c7;padding:1px 5px;border-radius:4px;">座號 姓名 性別(m/f，選填)</code><br>
+        <span style="font-size:0.75rem;color:#92400e;">例：<br>1 王曉明 m<br>2 陳小芳 f<br>3 李大明</span>
+      </div>
+      <textarea id="importText" class="form-input" rows="12"
+        placeholder="1 王曉明 m&#10;2 陳小芳 f&#10;3 李大明&#10;..."
+        style="font-family:monospace;font-size:0.9rem;resize:vertical;"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0.875rem;">
+        <button class="btn btn-primary" id="confirmImportBtn" style="padding:0.6rem;">✅ 確認匯入</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="importOverwrite" style="cursor:pointer;">
+          <label for="importOverwrite" style="font-size:0.8rem;color:#64748b;cursor:pointer;">覆蓋現有資料</label>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-gray" id="closeBulkEdit" style="width:100%;padding:0.6rem;margin-top:1rem;">關閉</button>
   </div>
 </div>
@@ -459,24 +500,27 @@ background-size:28px 28px;min-height:500px;}
           style="width:46px;text-align:center;border:1.5px solid #e2e8f0;border-radius:7px;padding:4px;font-size:0.9rem;color:#1e293b;">
         <span style="color:#64748b;font-size:0.8rem;">分</span>
       </div>
-      <div style="display:flex;gap:5px;justify-content:center;margin-bottom:0.625rem;">
-        <button class="qr-neutral settings-qs" data-s="1">1</button>
-        <button class="qr-neutral settings-qs" data-s="2">2</button>
-        <button class="qr-neutral settings-qs" data-s="3">3</button>
-        <button class="qr-neutral settings-qs" data-s="5">5</button>
-      </div>
       <div style="display:flex;gap:8px;justify-content:center;margin-bottom:0.75rem;">
-        <button class="btn btn-green" id="settingsAddBtn" style="padding:0.5rem 1.5rem;">＋ 加分</button>
-        <button class="btn btn-red" id="settingsSubBtn" style="padding:0.5rem 1.5rem;">－ 扣分</button>
+        <button class="score-bubble settings-qs" data-s="1">1</button>
+        <button class="score-bubble settings-qs" data-s="2">2</button>
+        <button class="score-bubble settings-qs" data-s="3">3</button>
+        <button class="score-bubble settings-qs" data-s="4">4</button>
+        <button class="score-bubble settings-qs" data-s="5">5</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:0.5rem;">
-        <button class="qr-btn qr-pos settings-reason" data-r="回答問題">回答問題</button>
-        <button class="qr-btn qr-pos settings-reason" data-r="幫老師忙">幫老師忙</button>
-        <button class="qr-btn qr-neg settings-reason" data-r="上課聊天">上課聊天</button>
-        <button class="qr-btn qr-neg settings-reason" data-r="作業沒寫">作業沒寫</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:0.625rem;">
+        <button class="qr-btn qr-pos settings-reason" data-r="回答問題">🙋 回答問題</button>
+        <button class="qr-btn qr-pos settings-reason" data-r="幫老師忙">🤝 幫老師忙</button>
+        <button class="qr-btn qr-neg settings-reason" data-r="上課聊天">💬 上課聊天</button>
+        <button class="qr-btn qr-neg settings-reason" data-r="作業沒寫">📋 作業沒寫</button>
       </div>
-      <textarea id="settingsReason" class="form-input" rows="2" placeholder="原因說明..." style="resize:none;font-size:0.82rem;"></textarea>
-      <button class="btn btn-primary" id="settingsConfirmBtn" style="width:100%;padding:0.5rem;margin-top:0.625rem;">確認積分調整</button>
+      <div style="position:relative;margin-bottom:0.75rem;">
+        <textarea id="settingsReason" class="form-input" rows="2" placeholder="⚠️ 必填：請輸入原因才能加減分" style="resize:none;font-size:0.82rem;border-color:#fbbf24;"></textarea>
+        <span style="position:absolute;top:-8px;right:8px;background:#ef4444;color:white;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:10px;">必填</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn btn-score-add" id="settingsAddBtn">＋ 加分</button>
+        <button class="btn btn-score-sub" id="settingsSubBtn">－ 扣分</button>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:0.875rem;">
       <button class="btn btn-outline btn-sm" id="settingsHistoryBtn">獎懲記錄</button>
@@ -999,12 +1043,17 @@ class ClassroomApp {
   // ── Free Seats ───────────────────────────────────────────────
   _renderFreeSeats(area) {
     area.innerHTML = '';
+    // 講台（自由模式也要有）
+    if (this.isStudentView) {
+      const p = document.createElement('div'); p.className='podium'; p.textContent='講  台';
+      area.appendChild(p);
+    }
     const wrap = document.createElement('div');
     wrap.id = 'freeArea';
 
     const hint = document.createElement('div');
     hint.className = 'free-hint';
-    hint.innerHTML = '將左側學生拖曳到此區域<br>可自由排列位置<br><span style="font-size:0.8rem;opacity:0.7;">雙擊座位可加減分</span>';
+    hint.innerHTML = '將左側學生拖曳到此區域<br>可自由排列位置<br><span style="font-size:0.8rem;opacity:0.7;">雙擊座位可加減分 · 右鍵移除</span>';
     wrap.appendChild(hint);
 
     const sz = this.seatSize;
@@ -1051,6 +1100,11 @@ class ClassroomApp {
     });
 
     area.appendChild(wrap);
+    // 老師視角：講台在下方
+    if (!this.isStudentView) {
+      const p = document.createElement('div'); p.className='podium'; p.style.marginTop='1rem'; p.textContent='講  台';
+      area.appendChild(p);
+    }
   }
 
   _mkFreeSeat(posKey, st, x, y, sz) {
@@ -1151,7 +1205,15 @@ class ClassroomApp {
   _adjustScore(type) {
     const sid = this.currentSettingsSid;
     const reason = document.getElementById('settingsReason').value.trim();
-    if (!reason) { alert('請輸入加減分原因'); return; }
+    if (!reason) {
+      // 視覺提示必填
+      const ta = document.getElementById('settingsReason');
+      ta.style.borderColor = '#ef4444';
+      ta.style.animation = 'shake 0.3s ease';
+      setTimeout(() => { ta.style.borderColor = '#fbbf24'; ta.style.animation = ''; }, 1200);
+      ta.focus();
+      return;
+    }
     const amt = parseInt(document.getElementById('settingsAmt').value)||1;
     const change = type*amt;
     const cls = this.data.classes[this.currentClassId];
@@ -1470,6 +1532,70 @@ class ClassroomApp {
     this._setSeats(seats);this._scheduleSave();this._renderSeats();
   }
 
+  // ── Bulk Tab Switch ──────────────────────────────────────────
+  _switchBulkTab(tab) {
+    const grid = document.getElementById('bulkGridView');
+    const imp  = document.getElementById('bulkImportView');
+    const btnG = document.getElementById('switchGrid');
+    const btnI = document.getElementById('switchImport');
+    if (tab === 'grid') {
+      grid.style.display = ''; imp.style.display = 'none';
+      btnG.classList.add('active'); btnI.classList.remove('active');
+    } else {
+      grid.style.display = 'none'; imp.style.display = '';
+      btnI.classList.add('active'); btnG.classList.remove('active');
+      document.getElementById('importText').value = '';
+    }
+  }
+
+  _confirmImport() {
+    const raw = document.getElementById('importText').value.trim();
+    if (!raw) { alert('請輸入學生資料'); return; }
+    const overwrite = document.getElementById('importOverwrite').checked;
+    const lines = raw.split('
+').map(l => l.trim()).filter(l => l);
+    const parsed = [];
+    const errors = [];
+    lines.forEach((line, i) => {
+      // 支援 "1 王曉明 m" 或 "1 王曉明" 或 "1	王曉明" 等
+      const parts = line.split(/[\s	]+/);
+      const sn = parseInt(parts[0]);
+      if (isNaN(sn) || sn < 1 || sn > 99) { errors.push(`第${i+1}行：座號無效 "${parts[0]}"`); return; }
+      const name = parts[1];
+      if (!name) { errors.push(`第${i+1}行：缺少姓名`); return; }
+      let gender = 'male';
+      if (parts[2]) {
+        const g = parts[2].toLowerCase();
+        if (g === 'f' || g === '女' || g === 'female') gender = 'female';
+        else if (g === 'm' || g === '男' || g === 'male') gender = 'male';
+      }
+      parsed.push({ seatNumber: sn, name, gender });
+    });
+    if (errors.length) { alert('以下行有錯誤：
+' + errors.join('
+')); return; }
+    if (!confirm(`確定匯入 ${parsed.length} 名學生？${overwrite ? '
+（將覆蓋相同座號的學生）' : ''}`)) return;
+    const cls = this.data.classes[this.currentClassId];
+    if (!cls.students) cls.students = {};
+    if (overwrite) {
+      // 移除同座號的舊資料
+      const existing = Object.entries(cls.students);
+      parsed.forEach(p => {
+        const found = existing.find(([,s]) => s.seatNumber === p.seatNumber);
+        if (found) delete cls.students[found[0]];
+      });
+    }
+    parsed.forEach(p => {
+      const id = `s${Date.now()}_${p.seatNumber}`;
+      cls.students[id] = { id, seatNumber: p.seatNumber, name: p.name, gender: p.gender };
+    });
+    this._scheduleSave();
+    this._renderAll();
+    this._hideModal('bulkEditModal');
+    alert(`✅ 成功匯入 ${parsed.length} 名學生！`);
+  }
+
   // ── Export CSV ────────────────────────────────────────────────
   _exportCSV() {
     const rows=[['座號','姓名','性別','積分']];
@@ -1563,8 +1689,8 @@ class ClassroomApp {
     document.getElementById('studentViewBtn')?.addEventListener('click',()=>{
       this.isStudentView=!this.isStudentView;
       const btn=document.getElementById('studentViewBtn');
-      btn.textContent=this.isStudentView?'老師視角':'學生視角';
-      btn.className=this.isStudentView?'btn btn-amber':'btn btn-outline';
+      btn.textContent=this.isStudentView?'🎓 老師視角':'👤 學生視角';
+      btn.className=this.isStudentView?'btn btn-view-active':'btn btn-view';
       this._renderSeats();
     });
 
@@ -1631,19 +1757,20 @@ class ClassroomApp {
     // Student settings
     document.getElementById('settingsAddBtn')?.addEventListener('click',()=>this._adjustScore(1));
     document.getElementById('settingsSubBtn')?.addEventListener('click',()=>this._adjustScore(-1));
-    document.getElementById('settingsConfirmBtn')?.addEventListener('click',()=>this._adjustScore(
-      document.getElementById('settingsReason').value.trim()?
-        (parseInt(document.getElementById('settingsAmt').value)||1)>0?1:1 : 0
-    ));
+    // settingsConfirmBtn removed - add/sub buttons handle directly
     document.querySelectorAll('.settings-qs').forEach(btn=>{
-      btn.addEventListener('click',()=>{document.getElementById('settingsAmt').value=btn.dataset.s;});
+      btn.addEventListener('click',()=>{
+        document.getElementById('settingsAmt').value=btn.dataset.s;
+        document.querySelectorAll('.settings-qs').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
     });
     document.querySelectorAll('.settings-reason').forEach(btn=>{
       btn.addEventListener('click',()=>{document.getElementById('settingsReason').value=btn.dataset.r;});
     });
     document.getElementById('settingsHistoryBtn')?.addEventListener('click',()=>{
       const sid=this.currentSettingsSid;
-      this._hideModal('studentSettingsModal');
+      // 不關 settingsModal，直接疊加顯示 historyModal
       this._showHistory(sid);
     });
     document.getElementById('settingsEditBtn')?.addEventListener('click',()=>{
@@ -1658,11 +1785,17 @@ class ClassroomApp {
     document.getElementById('editStudentsBtn')?.addEventListener('click',()=>this._showBulkEdit());
     document.getElementById('saveStudentBtn')?.addEventListener('click',()=>this._saveStudent());
     document.getElementById('deleteStudentBtn')?.addEventListener('click',()=>this._deleteStudent());
-    document.getElementById('cancelEditStudent')?.addEventListener('click',()=>this._hideModal('editStudentModal'));
+    document.getElementById('cancelEditStudent')?.addEventListener('click',()=>{
+      this._hideModal('editStudentModal');
+      if(this.currentSettingsSid) this._showModal('studentSettingsModal');
+    });
     document.getElementById('closeBulkEdit')?.addEventListener('click',()=>this._hideModal('bulkEditModal'));
 
-    // History
-    document.getElementById('closeHistoryBtn')?.addEventListener('click',()=>this._hideModal('historyModal'));
+    // History - 關閉後回到 studentSettings
+    document.getElementById('closeHistoryBtn')?.addEventListener('click',()=>{
+      this._hideModal('historyModal');
+      if(this.currentSettingsSid) this._showModal('studentSettingsModal');
+    });
 
     // Homework
     document.getElementById('addHwBtn')?.addEventListener('click',()=>{
@@ -1678,8 +1811,12 @@ class ClassroomApp {
     });
     document.getElementById('saveHwBtn')?.addEventListener('click',()=>{
       this._scheduleSave();this._renderAll();this._hideModal('homeworkModal');
+      if(this.currentSettingsSid) this._showModal('studentSettingsModal');
     });
-    document.getElementById('closeHwBtn')?.addEventListener('click',()=>this._hideModal('homeworkModal'));
+    document.getElementById('closeHwBtn')?.addEventListener('click',()=>{
+      this._hideModal('homeworkModal');
+      if(this.currentSettingsSid) this._showModal('studentSettingsModal');
+    });
 
     // Random / Reset
     document.getElementById('randomBtn')?.addEventListener('click',()=>this._randomSeating());
@@ -1687,6 +1824,9 @@ class ClassroomApp {
       if(!confirm('確定重置座位？'))return;
       this._setSeats({});this._scheduleSave();this._renderSeats();
     });
+
+    // Import
+    document.getElementById('confirmImportBtn')?.addEventListener('click',()=>this._confirmImport());
 
     // Export
     document.getElementById('exportBtn')?.addEventListener('click',()=>this._exportCSV());
