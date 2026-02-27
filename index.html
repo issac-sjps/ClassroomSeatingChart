@@ -196,6 +196,23 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 .group-inner{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:6px;}
 .group-row{display:flex;gap:8px;}
 
+/* ── Sci Lab layout ── */
+.scilab-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;max-width:900px;margin:0 auto;}
+.scilab-section{display:flex;flex-direction:column;gap:1.5rem;}
+.scilab-table{background:white;border:2px solid #d1fae5;border-radius:14px;padding:1rem;position:relative;box-shadow:0 2px 8px rgba(16,185,129,0.1);}
+.scilab-table-lbl{position:absolute;top:-12px;left:12px;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:2px 12px;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;}
+.scilab-table-lbl:hover{background:linear-gradient(135deg,#059669,#047857);}
+/* 長邊3座（面向講台）+ 短邊2座 */
+.scilab-long-row{display:flex;gap:8px;justify-content:center;margin-bottom:8px;}
+.scilab-short-row{display:flex;gap:32px;justify-content:center;}
+.scilab-divider{width:100%;height:2px;background:linear-gradient(90deg,transparent,#a7f3d0,transparent);margin:6px 0;}
+
+/* ── Computer Room layout ── */
+.computer-area{display:flex;flex-direction:column;gap:1rem;}
+.computer-row-wrap{display:flex;align-items:center;gap:10px;}
+.computer-row-label{font-size:0.75rem;font-weight:700;color:#7c3aed;writing-mode:horizontal-tb;min-width:36px;text-align:center;background:#f3e8ff;border:1px solid #ddd6fe;border-radius:6px;padding:4px;}
+.computer-row{display:flex;gap:6px;flex-wrap:nowrap;}
+
 /* ── Free Seat (自由配置) ── */
 #freeArea{flex:1;position:relative;background:
   radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0);
@@ -216,10 +233,10 @@ background-size:28px 28px;min-height:500px;}
 #freeArea.drop-active{background-color:rgba(139,92,246,0.04);}
 
 /* ── Lottery animations ── */
-.lottery-flash{animation:lflash 0.3s ease-in-out infinite alternate;}
-@keyframes lflash{0%{background:#fef3c7;border-color:#f59e0b;}100%{background:#fde68a;border-color:#d97706;}}
-.lottery-selected{background:#fee2e2!important;border-color:#ef4444!important;box-shadow:0 0 12px rgba(239,68,68,0.3)!important;animation:lpulse 1.5s ease-in-out infinite;}
-@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+.lottery-flash,.free-seat.lottery-flash{animation:lflash 0.3s ease-in-out infinite alternate!important;}
+@keyframes lflash{0%{background:#fef3c7!important;border-color:#f59e0b!important;}100%{background:#fde68a!important;border-color:#d97706!important;}}
+.lottery-selected,.free-seat.lottery-selected{background:#fee2e2!important;border-color:#ef4444!important;box-shadow:0 0 16px rgba(239,68,68,0.5)!important;animation:lpulse 1.5s ease-in-out infinite!important;}
+@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
 
 /* ── Timer ── */
 .timer-display{font-size:1rem;font-weight:700;color:#1e293b;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
@@ -339,11 +356,14 @@ background-size:28px 28px;min-height:500px;}
     <button class="btn btn-outline" id="modeGroup">小組座位</button>
     <button class="btn btn-outline" id="modeExam">考試座位</button>
     <button class="btn btn-outline" id="modeFree">自由座位</button>
+    <button class="btn btn-outline" id="modeSciLab">自然教室</button>
+    <button class="btn btn-outline" id="modeComputer">電腦教室</button>
     <div class="divider"></div>
     <!-- Views & Scores -->
     <button class="btn btn-view" id="studentViewBtn">👤 學生視角</button>
     <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
     <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
+    <span id="viewIndicator" style="font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:20px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🎓 老師視角</span>
     <div class="divider"></div>
     <!-- 右側區塊：抽籤 + 計時器 -->
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
@@ -586,6 +606,16 @@ background-size:28px 28px;min-height:500px;}
   </div>
 </div>
 
+<!-- Lottery Result Modal -->
+<div class="modal-overlay" id="lotteryResultModal">
+  <div class="modal-box" style="max-width:420px;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem;">🎉</div>
+    <div class="modal-title" style="justify-content:center;display:flex;font-size:1.2rem;" id="lotteryResultTitle">抽籤結果</div>
+    <div id="lotteryResultList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:1rem 0;"></div>
+    <button class="btn btn-primary" id="closeLotteryResult" style="width:100%;padding:0.65rem;margin-top:0.5rem;">確認</button>
+  </div>
+</div>
+
 <!-- Timer Modal -->
 <div class="modal-overlay" id="timerModal">
   <div class="modal-box" style="max-width:360px;">
@@ -732,6 +762,11 @@ class ClassroomApp {
         if (!this.data.classes) this.data.classes = {};
         if (!this.data.homeworkNotes) this.data.homeworkNotes = {};
         // 補齊 classOrder（舊資料相容）
+        // 補齊新模式座位
+        Object.values(this.data.classes).forEach(cls => {
+          if (!cls.scilabSeats)   cls.scilabSeats   = {};
+          if (!cls.computerSeats) cls.computerSeats = {};
+        });
         if (!this.data.classOrder || !Array.isArray(this.data.classOrder)) {
           this.data.classOrder = Object.keys(this.data.classes);
         } else {
@@ -788,6 +823,7 @@ class ClassroomApp {
     for (let i=1;i<=15;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'male'};
     for (let i=21;i<=35;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'female'};
     return { name, students, normalSeats:{}, groupSeats:{}, examSeats:{}, freeSeats:{},
+             scilabSeats:{}, computerSeats:{},
              scores:{}, scoreHistory:{}, groupScores:{}, groupScoreHistory:{} };
   }
 
@@ -795,18 +831,22 @@ class ClassroomApp {
   get _students() { return this._cls.students || {}; }
   get _seats() {
     const c = this._cls;
-    if (this.currentMode==='normal') return c.normalSeats||{};
-    if (this.currentMode==='group')  return c.groupSeats||{};
-    if (this.currentMode==='exam')   return c.examSeats||{};
-    if (this.currentMode==='free')   return c.freeSeats||{};
+    if (this.currentMode==='normal')   return c.normalSeats||{};
+    if (this.currentMode==='group')    return c.groupSeats||{};
+    if (this.currentMode==='exam')     return c.examSeats||{};
+    if (this.currentMode==='free')     return c.freeSeats||{};
+    if (this.currentMode==='scilab')   return c.scilabSeats||{};
+    if (this.currentMode==='computer') return c.computerSeats||{};
     return {};
   }
   _setSeats(s) {
     const c = this.data.classes[this.currentClassId];
-    if (this.currentMode==='normal') c.normalSeats=s;
-    else if (this.currentMode==='group')  c.groupSeats=s;
-    else if (this.currentMode==='exam')   c.examSeats=s;
-    else if (this.currentMode==='free')   c.freeSeats=s;
+    if (this.currentMode==='normal')   c.normalSeats=s;
+    else if (this.currentMode==='group')    c.groupSeats=s;
+    else if (this.currentMode==='exam')     c.examSeats=s;
+    else if (this.currentMode==='free')     c.freeSeats=s;
+    else if (this.currentMode==='scilab')   c.scilabSeats=s;
+    else if (this.currentMode==='computer') c.computerSeats=s;
   }
   get _scores() { return this._cls.scores||{}; }
   get _hw() { return this.data.homeworkNotes||{}; }
@@ -971,6 +1011,8 @@ class ClassroomApp {
     if (this.currentMode==='normal') this._renderNormal(area);
     else if (this.currentMode==='group') this._renderGroup(area);
     else if (this.currentMode==='exam') this._renderExam(area);
+    else if (this.currentMode==='scilab') this._renderSciLab(area);
+    else if (this.currentMode==='computer') this._renderComputer(area);
 
     if (!this.isStudentView) {
       const p = document.createElement('div'); p.className='podium'; p.style.marginTop='1.25rem'; p.textContent='講  台';
@@ -1030,6 +1072,90 @@ class ClassroomApp {
       order.forEach(col => rowDiv.appendChild(this._mkSeat(row*6+col, sz)));
       container.appendChild(rowDiv);
     });
+  }
+
+  // ── Sci Lab: 6桌 左3右3，每桌長邊3座(面台)+短邊2座(兩側) ──
+  // 座位編號：桌0~5，每桌pos = table*5 + 0..4
+  // pos0,1,2 = 長邊(面台)；pos3,4 = 短邊(兩側)
+  _renderSciLab(container) {
+    const sz = this.seatSize;
+    const grid = document.createElement('div');
+    grid.className = 'scilab-grid';
+
+    // 左半3桌 + 右半3桌
+    const leftSection  = document.createElement('div'); leftSection.className='scilab-section';
+    const rightSection = document.createElement('div'); rightSection.className='scilab-section';
+
+    const tableOrder = this.isStudentView ? [2,1,0,5,4,3] : [0,1,2,3,4,5];
+
+    tableOrder.forEach((t, idx) => {
+      const tableEl = document.createElement('div');
+      tableEl.className = 'scilab-table';
+
+      const lbl = document.createElement('button');
+      lbl.className = 'scilab-table-lbl';
+      lbl.textContent = `第${t+1}組`;
+      lbl.onclick = () => this._showGroupScoreModal(t+1);
+      tableEl.appendChild(lbl);
+
+      // 長邊3座（面向講台）
+      const longRow = document.createElement('div');
+      longRow.className = 'scilab-long-row';
+      const longOrder = this.isStudentView ? [2,1,0] : [0,1,2];
+      longOrder.forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
+      tableEl.appendChild(longRow);
+
+      // 分隔線
+      const div = document.createElement('div');
+      div.className = 'scilab-divider';
+      tableEl.appendChild(div);
+
+      // 短邊2座（兩側，面向講台）
+      const shortRow = document.createElement('div');
+      shortRow.className = 'scilab-short-row';
+      const shortOrder = this.isStudentView ? [4,3] : [3,4];
+      shortOrder.forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
+      tableEl.appendChild(shortRow);
+
+      // 左0-2桌、右3-5桌
+      if (idx < 3) leftSection.appendChild(tableEl);
+      else rightSection.appendChild(tableEl);
+    });
+
+    grid.appendChild(leftSection);
+    grid.appendChild(rightSection);
+    container.appendChild(grid);
+  }
+
+  // ── Computer Room: 3排 × 10人 面向講桌 ──
+  // 座位編號：row0~2，每row pos = row*10 + 0..9
+  _renderComputer(container) {
+    const sz = Math.min(this.seatSize, 110); // 電腦教室桌子稍小
+    const area = document.createElement('div');
+    area.className = 'computer-area';
+
+    const rowOrder = this.isStudentView ? [2,1,0] : [0,1,2];
+    const colOrder = this.isStudentView
+      ? [9,8,7,6,5,4,3,2,1,0]
+      : [0,1,2,3,4,5,6,7,8,9];
+
+    rowOrder.forEach(row => {
+      const wrap = document.createElement('div');
+      wrap.className = 'computer-row-wrap';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'computer-row-label';
+      lbl.textContent = `第${row+1}排`;
+      wrap.appendChild(lbl);
+
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'computer-row';
+      colOrder.forEach(col => rowDiv.appendChild(this._mkSeat(row*10+col, sz)));
+      wrap.appendChild(rowDiv);
+
+      area.appendChild(wrap);
+    });
+    container.appendChild(area);
   }
 
   _mkSeat(position, sz) {
@@ -1289,18 +1415,22 @@ class ClassroomApp {
     if (this.isLotteryRunning) return;
     this._clearSel();
     const seats = this._seats;
+    const isFree = this.currentMode === 'free';
     const eligible = [];
-    Object.entries(seats).forEach(([pos, sid]) => {
+    Object.entries(seats).forEach(([posKey, sid]) => {
       const st = this._students[sid];
-      if (st && (type==='all'||st.gender===type)) eligible.push({pos,st});
+      if (st && (type==='all'||st.gender===type)) eligible.push({posKey, st});
     });
     const count = parseInt(document.getElementById('lotteryCount').value)||1;
     if (!eligible.length) { alert('沒有符合條件的學生在座位上'); return; }
     if (count > eligible.length) { alert(`只有${eligible.length}人，不足${count}人`); return; }
     this.isLotteryRunning = true;
     this.flashIntervals = [];
-    eligible.forEach(({pos}) => {
-      const el = document.querySelector(`[data-position="${pos}"]`);
+    const getEl = (posKey) => isFree
+      ? document.querySelector(`[data-pos-key="${posKey}"]`)
+      : document.querySelector(`[data-position="${posKey}"]`);
+    eligible.forEach(({posKey}) => {
+      const el = getEl(posKey);
       if (!el) return;
       const iv = setInterval(()=>el.classList.toggle('lottery-flash'), 200+Math.random()*300);
       this.flashIntervals.push(iv);
@@ -1308,21 +1438,34 @@ class ClassroomApp {
     setTimeout(() => {
       this.flashIntervals.forEach(iv=>clearInterval(iv));
       this.flashIntervals=[];
-      eligible.forEach(({pos}) => {
-        const el = document.querySelector(`[data-position="${pos}"]`);
+      eligible.forEach(({posKey}) => {
+        const el = getEl(posKey);
         if (el) el.classList.remove('lottery-flash');
       });
       const winners = [...eligible].sort(()=>Math.random()-0.5).slice(0,count);
       this.selectedStudents = winners;
-      winners.forEach(({pos})=>{
-        const el=document.querySelector(`[data-position="${pos}"]`);
-        if(el)el.classList.add('lottery-selected');
+      winners.forEach(({posKey})=>{
+        const el = getEl(posKey);
+        if(el) el.classList.add('lottery-selected');
       });
-      const nums = winners.map(w=>w.st.seatNumber);
-      this._speak(nums.length===1?`恭喜${nums[0]}號`:`恭喜${nums.join('號、')}號`);
+      this._showLotteryResult(winners);
+      const names = winners.map(w=>w.st.name);
+      this._speak(winners.length===1?`恭喜${winners[0].st.name}`:`恭喜${names.join('、')}`);
       document.getElementById('clearSelBtn').style.display='';
       this.isLotteryRunning = false;
     }, 3000);
+  }
+
+  _showLotteryResult(winners) {
+    const title = document.getElementById('lotteryResultTitle');
+    const list  = document.getElementById('lotteryResultList');
+    title.textContent = winners.length===1 ? '🎉 抽中了！' : `🎉 抽中 ${winners.length} 位同學！`;
+    list.innerHTML = winners.map(w => `
+      <div style="background:${w.st.gender==='male'?'linear-gradient(135deg,#dbeafe,#bfdbfe)':'linear-gradient(135deg,#fee2e2,#fecaca)'};border:2px solid ${w.st.gender==='male'?'#93c5fd':'#fca5a5'};border-radius:14px;padding:14px 24px;min-width:110px;box-shadow:0 4px 14px rgba(0,0,0,0.12);">
+        <div style="font-size:2rem;font-weight:800;color:${w.st.gender==='male'?'#1e40af':'#991b1b'};">${w.st.seatNumber}</div>
+        <div style="font-size:1.1rem;font-weight:700;color:${w.st.gender==='male'?'#1e3a8a':'#7f1d1d'};">${w.st.name}</div>
+      </div>`).join('');
+    this._showModal('lotteryResultModal');
   }
 
   _clearSel() {
@@ -1555,7 +1698,9 @@ class ClassroomApp {
   // ── Random Seating ────────────────────────────────────────────
   _randomSeating() {
     if(!confirm('確定隨機安排座位？'))return;
-    const maxPos=this.currentMode==='exam'?36:30;
+    const posCount = {normal:30,group:30,exam:36,free:0,scilab:30,computer:30};
+    const maxPos = posCount[this.currentMode] || 30;
+    if(maxPos===0){alert('自由座位請直接拖曳安排');return;}
     const positions=Array.from({length:maxPos},(_,i)=>i).sort(()=>Math.random()-0.5);
     const students=Object.values(this._students).sort(()=>Math.random()-0.5);
     const seats={};
@@ -1694,8 +1839,8 @@ class ClassroomApp {
     document.getElementById('cancelRename')?.addEventListener('click',()=>this._hideModal('renameClassModal'));
 
     // Mode buttons
-    const modeMap={modeNormal:'normal',modeGroup:'group',modeExam:'exam',modeFree:'free'};
-    const modeLabels={normal:'一般座位模式',group:'小組座位模式',exam:'考試座位模式',free:'自由座位模式'};
+    const modeMap={modeNormal:'normal',modeGroup:'group',modeExam:'exam',modeFree:'free',modeSciLab:'scilab',modeComputer:'computer'};
+    const modeLabels={normal:'一般座位模式',group:'小組座位模式',exam:'考試座位模式',free:'自由座位模式',scilab:'自然教室模式',computer:'電腦教室模式'};
     Object.entries(modeMap).forEach(([btnId,mode])=>{
       document.getElementById(btnId)?.addEventListener('click',()=>{
         this.currentMode=mode;
@@ -1714,6 +1859,13 @@ class ClassroomApp {
       const btn=document.getElementById('studentViewBtn');
       btn.textContent=this.isStudentView?'🎓 老師視角':'👤 學生視角';
       btn.className=this.isStudentView?'btn btn-view-active':'btn btn-view';
+      const ind=document.getElementById('viewIndicator');
+      if(ind){
+        ind.textContent=this.isStudentView?'👤 學生視角':'🎓 老師視角';
+        ind.style.background=this.isStudentView?'#ede9fe':'#fef3c7';
+        ind.style.color=this.isStudentView?'#5b21b6':'#92400e';
+        ind.style.borderColor=this.isStudentView?'#c4b5fd':'#fde68a';
+      }
       this._renderSeats();
     });
 
@@ -1751,6 +1903,7 @@ class ClassroomApp {
     document.getElementById('lotteryBoysBtn')?.addEventListener('click',()=>this._startLottery('male'));
     document.getElementById('lotteryGirlsBtn')?.addEventListener('click',()=>this._startLottery('female'));
     document.getElementById('clearSelBtn')?.addEventListener('click',()=>this._clearSel());
+    document.getElementById('closeLotteryResult')?.addEventListener('click',()=>this._hideModal('lotteryResultModal'));
 
     // Timer
     document.getElementById('timerBtn')?.addEventListener('click',()=>this._showModal('timerModal'));
