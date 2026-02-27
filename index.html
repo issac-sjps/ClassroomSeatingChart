@@ -68,15 +68,23 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 .class-bar{background:white;border-bottom:1px solid #e2e8f0;padding:0 1.25rem;display:flex;align-items:center;gap:0;overflow-x:auto;flex-shrink:0;}
 .class-bar::-webkit-scrollbar{height:3px;}
 .class-bar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
-.class-tab{display:flex;align-items:center;gap:6px;padding:0.6rem 1rem;font-size:0.85rem;font-weight:500;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
+#classTabs{display:flex;align-items:stretch;gap:0;}
+.class-tab{display:flex;align-items:center;gap:5px;padding:0.6rem 0.875rem;font-size:0.85rem;font-weight:500;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:background 0.15s,color 0.15s;white-space:nowrap;flex-shrink:0;user-select:none;position:relative;}
 .class-tab:hover{color:#3b82f6;background:#f8fafc;}
 .class-tab.active{color:#3b82f6;border-bottom-color:#3b82f6;font-weight:600;}
-.class-tab-rename{font-size:0.75rem;opacity:0;padding:1px 4px;border-radius:4px;background:#f1f5f9;border:1px solid #e2e8f0;cursor:pointer;transition:opacity 0.15s;}
-.class-tab.active .class-tab-rename{opacity:1;}
+.class-tab.tab-dragging{opacity:0.35;background:#eff6ff;}
+.class-tab.tab-drag-over-left::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#3b82f6;border-radius:2px;}
+.class-tab.tab-drag-over-right::after{content:'';position:absolute;right:0;top:4px;bottom:4px;width:3px;background:#3b82f6;border-radius:2px;}
+.drag-handle{font-size:0.7rem;color:#d1d5db;cursor:grab;line-height:1;letter-spacing:-1px;}
+.class-tab:hover .drag-handle{color:#94a3b8;}
+.class-tab-rename{font-size:0.7rem;opacity:0;padding:1px 5px;border-radius:4px;background:#f1f5f9;border:1px solid #e2e8f0;cursor:pointer;transition:opacity 0.15s;line-height:1.5;}
+.class-tab:hover .class-tab-rename,.class-tab.active .class-tab-rename{opacity:1;}
 .class-tab-rename:hover{background:#dbeafe;border-color:#93c5fd;}
 .add-class-btn{padding:0.5rem 0.875rem;font-size:0.8rem;font-weight:500;color:#3b82f6;background:transparent;border:1px dashed #93c5fd;border-radius:8px;cursor:pointer;margin-left:0.5rem;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
 .add-class-btn:hover{background:#eff6ff;}
-.sync-badge{margin-left:auto;padding-left:1rem;display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#94a3b8;flex-shrink:0;}
+.sort-class-btn{padding:0.4rem 0.75rem;font-size:0.75rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;cursor:pointer;margin-left:6px;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
+.sort-class-btn:hover{background:#eff6ff;color:#3b82f6;border-color:#93c5fd;}
+.sync-badge{margin-left:auto;padding-left:0.75rem;display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#94a3b8;flex-shrink:0;}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;}
 .sync-dot.syncing{background:#f59e0b;animation:blink 0.6s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
@@ -276,6 +284,7 @@ background-size:28px 28px;min-height:500px;}
   <div class="class-bar" id="classBar">
     <div id="classTabs" style="display:flex;align-items:stretch;gap:0;"></div>
     <button class="add-class-btn" id="addClassBtn">＋ 新增班級</button>
+    <button class="sort-class-btn" id="sortClassBtn" title="依名稱排序班級">AZ 排序</button>
     <div class="sync-badge">
       <div class="sync-dot" id="syncDot"></div>
       <span id="syncText">已同步</span>
@@ -622,12 +631,25 @@ class ClassroomApp {
         this.data = snap.data();
         if (!this.data.classes) this.data.classes = {};
         if (!this.data.homeworkNotes) this.data.homeworkNotes = {};
+        // 補齊 classOrder（舊資料相容）
+        if (!this.data.classOrder || !Array.isArray(this.data.classOrder)) {
+          this.data.classOrder = Object.keys(this.data.classes);
+        } else {
+          const existing = new Set(Object.keys(this.data.classes));
+          this.data.classOrder = this.data.classOrder.filter(id => existing.has(id));
+          Object.keys(this.data.classes).forEach(id => {
+            if (!this.data.classOrder.includes(id)) this.data.classOrder.push(id);
+          });
+        }
       } else {
-        this.data = { classes: { class1: this._newClass('我的班級') }, homeworkNotes: {} };
+        this.data = {
+          classes: { class1: this._newClass('我的班級') },
+          classOrder: ['class1'],
+          homeworkNotes: {}
+        };
         await this._save();
       }
-      const ids = Object.keys(this.data.classes);
-      this.currentClassId = ids[0] || null;
+      this.currentClassId = this.data.classOrder[0] || Object.keys(this.data.classes)[0] || null;
       this._renderTabs();
       this._renderAll();
     } catch(e) {
@@ -696,23 +718,103 @@ class ClassroomApp {
   _renderTabs() {
     const container = document.getElementById('classTabs');
     container.innerHTML = '';
-    Object.entries(this.data.classes).forEach(([id,cls]) => {
+    // 確保 classOrder 存在
+    if (!this.data.classOrder) this.data.classOrder = Object.keys(this.data.classes);
+    const order = this.data.classOrder;
+
+    order.forEach((id, idx) => {
+      const cls = this.data.classes[id];
+      if (!cls) return;
       const tab = document.createElement('div');
-      tab.className = 'class-tab' + (id===this.currentClassId?' active':'');
-      tab.innerHTML = `<span class="tab-name">${cls.name}</span><span class="class-tab-rename btn-sm" data-id="${id}" title="修改名稱">✏️</span>`;
+      tab.className = 'class-tab' + (id === this.currentClassId ? ' active' : '');
+      tab.draggable = true;
+      tab.dataset.classId = id;
+      tab.innerHTML = `
+        <span class="drag-handle" title="拖曳排序">⠿</span>
+        <span class="tab-name">${cls.name}</span>
+        <span class="class-tab-rename" title="修改名稱">✏️</span>
+      `;
+
+      // 切換班級
       tab.querySelector('.tab-name').onclick = () => {
         this.currentClassId = id;
         this._renderTabs();
         this._renderAll();
       };
+
+      // 重新命名
       tab.querySelector('.class-tab-rename').onclick = e => {
         e.stopPropagation();
         this.renamingClassId = id;
         document.getElementById('renameClassInput').value = cls.name;
         this._showModal('renameClassModal');
       };
+
+      // ── Tab 拖曳排序 ──
+      tab.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('tabId', id);
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => tab.classList.add('tab-dragging'), 0);
+        this._dragTabId = id;
+      });
+      tab.addEventListener('dragend', () => {
+        tab.classList.remove('tab-dragging');
+        container.querySelectorAll('.class-tab').forEach(t => {
+          t.classList.remove('tab-drag-over-left', 'tab-drag-over-right');
+        });
+        this._dragTabId = null;
+      });
+      tab.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!this._dragTabId || this._dragTabId === id) return;
+        const rect = tab.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        tab.classList.remove('tab-drag-over-left', 'tab-drag-over-right');
+        if (e.clientX < mid) tab.classList.add('tab-drag-over-left');
+        else tab.classList.add('tab-drag-over-right');
+      });
+      tab.addEventListener('dragleave', () => {
+        tab.classList.remove('tab-drag-over-left', 'tab-drag-over-right');
+      });
+      tab.addEventListener('drop', e => {
+        e.preventDefault();
+        tab.classList.remove('tab-drag-over-left', 'tab-drag-over-right');
+        const fromId = this._dragTabId;
+        if (!fromId || fromId === id) return;
+
+        const rect = tab.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        const insertBefore = e.clientX < mid;
+
+        const arr = [...this.data.classOrder];
+        const fromIdx = arr.indexOf(fromId);
+        const toIdx = arr.indexOf(id);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        // 移除 from
+        arr.splice(fromIdx, 1);
+        // 重新計算 to 的 index
+        const newToIdx = arr.indexOf(id);
+        arr.splice(insertBefore ? newToIdx : newToIdx + 1, 0, fromId);
+
+        this.data.classOrder = arr;
+        this._renderTabs();
+        this._scheduleSave();
+      });
+
       container.appendChild(tab);
     });
+  }
+
+  // 一鍵依名稱排序
+  _sortClassesByName() {
+    if (!this.data.classOrder) this.data.classOrder = Object.keys(this.data.classes);
+    this.data.classOrder.sort((a, b) => {
+      const na = (this.data.classes[a]?.name || '').localeCompare(this.data.classes[b]?.name || '', 'zh-TW', { numeric: true });
+      return na;
+    });
+    this._renderTabs();
+    this._scheduleSave();
   }
 
   _renderStudentList() {
@@ -1374,9 +1476,12 @@ class ClassroomApp {
       if(confirm('確定登出？'))await window._signOut(window._auth);
     });
 
+    // Sort Classes
+    document.getElementById('sortClassBtn')?.addEventListener('click',()=>this._sortClassesByName());
+
     // Add Class
     document.getElementById('addClassBtn')?.addEventListener('click',()=>{
-      if(Object.keys(this.data?.classes||{}).length>=15){alert('最多可建立15個班級');return;}
+      if(Object.keys(this.data?.classes||{}).length>=30){alert('最多可建立30個班級');return;}
       document.getElementById('newClassName').value='';
       this._showModal('addClassModal');
     });
@@ -1385,6 +1490,8 @@ class ClassroomApp {
       if(!name){alert('請輸入班級名稱');return;}
       const id=`class${Date.now()}`;
       this.data.classes[id]=this._newClass(name);
+      if(!this.data.classOrder)this.data.classOrder=[];
+      this.data.classOrder.push(id);
       this.currentClassId=id;
       document.getElementById('newClassName').value='';
       this._hideModal('addClassModal');
@@ -1403,8 +1510,10 @@ class ClassroomApp {
       if(Object.keys(this.data.classes).length<=1){alert('至少需要保留一個班級');return;}
       if(!confirm('確定刪除這個班級？所有資料將消失！'))return;
       delete this.data.classes[this.renamingClassId];
-      const ids=Object.keys(this.data.classes);
-      this.currentClassId=ids[0];
+      if(this.data.classOrder){
+        this.data.classOrder=this.data.classOrder.filter(i=>i!==this.renamingClassId);
+      }
+      this.currentClassId=this.data.classOrder?.[0]||Object.keys(this.data.classes)[0]||null;
       this._renderTabs();this._renderAll();this._scheduleSave();this._hideModal('renameClassModal');
     });
     document.getElementById('cancelRename')?.addEventListener('click',()=>this._hideModal('renameClassModal'));
