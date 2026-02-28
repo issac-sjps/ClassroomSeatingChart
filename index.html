@@ -395,6 +395,7 @@ background-size:28px 28px;min-height:500px;}
       <button class="btn btn-primary" id="lotteryBoysBtn">男生抽籤</button>
       <button class="btn btn-red" id="lotteryGirlsBtn">女生抽籤</button>
       <button class="btn btn-gray" id="clearSelBtn" style="display:none;">取消標記</button>
+      <button class="btn btn-outline btn-sm" id="excludeDrawnBtn" title="排除已抽過的學生" style="font-size:0.72rem;padding:3px 8px;border-radius:6px;">🚫 排除已抽</button>
       <div class="divider"></div>
       <!-- Timer -->
       <button class="btn btn-green" id="timerBtn">⏱ 計時器</button>
@@ -417,6 +418,16 @@ background-size:28px 28px;min-height:500px;}
         </div>
       </div>
       <div id="studentList"></div>
+      <!-- 已抽名單 -->
+      <div style="border-top:1.5px solid #e2e8f0;padding:8px 10px 6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:0.72rem;font-weight:700;color:#64748b;letter-spacing:0.5px;">📋 已抽過</span>
+          <button id="clearDrawnBtn" style="font-size:0.65rem;padding:1px 7px;border-radius:5px;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer;">清除</button>
+        </div>
+        <div id="drawnList" style="display:flex;flex-wrap:wrap;gap:4px;min-height:22px;">
+          <span id="drawnEmpty" style="font-size:0.68rem;color:#cbd5e1;">（尚未抽籤）</span>
+        </div>
+      </div>
     </div>
 
     <!-- Classroom -->
@@ -436,6 +447,7 @@ background-size:28px 28px;min-height:500px;}
         <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="190" value="100" style="width:70px;">
         <button class="btn btn-primary btn-sm" id="randomBtn">🔀 隨機入座</button>
         <button class="btn btn-gray btn-sm" id="resetBtn">重置座位</button>
+        <button class="btn btn-outline btn-sm" id="screenshotBtn" title="另存座位表圖片">📸 截圖</button>
       </div>
       <div id="seatingArea">
         <!-- dynamically rendered -->
@@ -645,25 +657,50 @@ background-size:28px 28px;min-height:500px;}
 
 <!-- Timer Modal -->
 <div class="modal-overlay" id="timerModal">
-  <div class="modal-box" style="max-width:360px;">
-    <div class="modal-title">設定倒數計時器</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0.875rem;">
-      <div><label class="form-label">時</label><input type="number" class="form-input" id="timerH" value="0" min="0" max="23" style="text-align:center;"></div>
-      <div><label class="form-label">分</label><input type="number" class="form-input" id="timerM" value="5" min="0" max="59" style="text-align:center;"></div>
-      <div><label class="form-label">秒</label><input type="number" class="form-input" id="timerS" value="0" min="0" max="59" style="text-align:center;"></div>
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-title">計時器</div>
+    <!-- 模式切換 -->
+    <div style="display:flex;gap:6px;margin-bottom:1rem;background:#f1f5f9;border-radius:10px;padding:4px;">
+      <button id="timerModeCountdown" style="flex:1;padding:6px;border-radius:7px;border:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;font-weight:700;font-size:0.82rem;cursor:pointer;">⏬ 倒數計時</button>
+      <button id="timerModeStopwatch" style="flex:1;padding:6px;border-radius:7px;border:none;background:transparent;color:#64748b;font-weight:700;font-size:0.82rem;cursor:pointer;">⏫ 正計時</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:0.875rem;">
-      <button class="qr-btn qr-neutral quick-time" data-m="1">1分鐘</button>
-      <button class="qr-btn qr-neutral quick-time" data-m="5">5分鐘</button>
-      <button class="qr-btn qr-neutral quick-time" data-m="10">10分鐘</button>
-      <button class="qr-btn qr-neutral quick-time" data-m="15">15分鐘</button>
-      <button class="qr-btn qr-neutral quick-time" data-m="30">30分鐘</button>
-      <button class="qr-btn qr-neutral quick-time" data-m="45">45分鐘</button>
+    <!-- 倒數設定 -->
+    <div id="countdownSection">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0.875rem;">
+        <div><label class="form-label">時</label><input type="number" class="form-input" id="timerH" value="0" min="0" max="23" style="text-align:center;"></div>
+        <div><label class="form-label">分</label><input type="number" class="form-input" id="timerM" value="5" min="0" max="59" style="text-align:center;"></div>
+        <div><label class="form-label">秒</label><input type="number" class="form-input" id="timerS" value="0" min="0" max="59" style="text-align:center;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:0.875rem;">
+        <button class="qr-btn qr-neutral quick-time" data-m="1">1分鐘</button>
+        <button class="qr-btn qr-neutral quick-time" data-m="5">5分鐘</button>
+        <button class="qr-btn qr-neutral quick-time" data-m="10">10分鐘</button>
+        <button class="qr-btn qr-neutral quick-time" data-m="15">15分鐘</button>
+        <button class="qr-btn qr-neutral quick-time" data-m="30">30分鐘</button>
+        <button class="qr-btn qr-neutral quick-time" data-m="45">45分鐘</button>
+      </div>
+    </div>
+    <!-- 正計時說明 -->
+    <div id="stopwatchSection" style="display:none;text-align:center;padding:1rem 0;color:#64748b;font-size:0.85rem;">
+      按「開始」後開始計時，可隨時暫停或停止
     </div>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-green" id="startTimerBtn" style="flex:1;padding:0.6rem;">開始計時</button>
+      <button class="btn btn-green" id="startTimerBtn" style="flex:1;padding:0.6rem;">▶ 開始</button>
       <button class="btn btn-gray" id="cancelTimerBtn" style="padding:0.6rem 1rem;">取消</button>
     </div>
+  </div>
+</div>
+
+<!-- 浮動計時器大視窗 -->
+<div id="floatTimer" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;
+  background:rgba(15,23,42,0.92);backdrop-filter:blur(12px);border-radius:20px;
+  padding:18px 28px;box-shadow:0 8px 40px rgba(0,0,0,0.4);cursor:move;user-select:none;
+  min-width:200px;text-align:center;border:1px solid rgba(255,255,255,0.1);">
+  <div id="floatTimerLabel" style="font-size:0.7rem;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">倒數計時</div>
+  <div id="floatTimerDisplay" style="font-size:3.5rem;font-weight:800;color:white;font-variant-numeric:tabular-nums;line-height:1;">00:00</div>
+  <div style="display:flex;gap:8px;margin-top:12px;justify-content:center;">
+    <button id="floatPauseBtn" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:0.75rem;cursor:pointer;">暫停</button>
+    <button id="floatStopBtn" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.15);color:#fca5a5;font-size:0.75rem;cursor:pointer;">停止</button>
   </div>
 </div>
 
@@ -797,6 +834,7 @@ class ClassroomApp {
           if (!cls.scilabGroupNames)       cls.scilabGroupNames       = {};
           if (!cls.scilabGroupScores)      cls.scilabGroupScores      = {};
           if (!cls.scilabGroupScoreHistory) cls.scilabGroupScoreHistory = {};
+          if (!cls.drawnSids)               cls.drawnSids               = [];
         });
         if (!this.data.classOrder || !Array.isArray(this.data.classOrder)) {
           this.data.classOrder = Object.keys(this.data.classes);
@@ -858,7 +896,8 @@ class ClassroomApp {
              groupNames:{}, scilabGroupNames:{},
              scores:{}, scoreHistory:{},
              groupScores:{}, groupScoreHistory:{},
-             scilabGroupScores:{}, scilabGroupScoreHistory:{} };
+             scilabGroupScores:{}, scilabGroupScoreHistory:{},
+             drawnSids:[] };
   }
 
   get _cls() { return this.data.classes[this.currentClassId] || {}; }
@@ -887,7 +926,7 @@ class ClassroomApp {
   _hwCount(sid) { return (this._hw[sid]||[]).length; }
 
   // ── Render ───────────────────────────────────────────────────
-  _renderAll() { this._renderStudentList(); this._renderSeats(); }
+  _renderAll() { this._renderStudentList(); this._renderSeats(); this._renderDrawnList(); }
 
   _renderTabs() {
     const container = document.getElementById('classTabs');
@@ -1529,10 +1568,15 @@ class ClassroomApp {
     this._clearSel();
     const seats = this._seats;
     const isFree = this.currentMode === 'free';
+    const excludeDrawn = document.getElementById('excludeDrawnBtn')?.classList.contains('active-exclude');
+    const drawnSids = new Set(this._cls.drawnSids||[]);
     const eligible = [];
     Object.entries(seats).forEach(([posKey, sid]) => {
       const st = this._students[sid];
-      if (st && (type==='all'||st.gender===type)) eligible.push({posKey, st});
+      if (!st) return;
+      if (type!=='all'&&st.gender!==type) return;
+      if (excludeDrawn && drawnSids.has(sid)) return;
+      eligible.push({posKey, st});
     });
     const count = parseInt(document.getElementById('lotteryCount').value)||1;
     if (!eligible.length) { alert('沒有符合條件的學生在座位上'); return; }
@@ -1567,6 +1611,12 @@ class ClassroomApp {
       this._showLotteryResult(winners);
       const names = winners.map(w=>w.st.name);
       this._speak(winners.length===1?`恭喜${winners[0].st.name}`:`恭喜${names.join('、')}`);
+      // 加入已抽名單
+      const cls=this.data.classes[this.currentClassId];
+      if(!cls.drawnSids) cls.drawnSids=[];
+      winners.forEach(w=>{ if(!cls.drawnSids.includes(w.st.id)) cls.drawnSids.push(w.st.id); });
+      this._scheduleSave();
+      this._renderDrawnList();
       document.getElementById('clearSelBtn').style.display='';
       this.isLotteryRunning = false;
     }, 3000);
@@ -1595,6 +1645,52 @@ class ClassroomApp {
     document.getElementById('clearSelBtn').style.display='none';
   }
 
+  async _saveScreenshot() {
+    const btn = document.getElementById('screenshotBtn');
+    btn.textContent='⏳ 截圖中...'; btn.disabled=true;
+    try {
+      // 動態載入 html2canvas
+      if (!window.html2canvas) {
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+          s.onload=res; s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const area = document.getElementById('seatingArea');
+      const cls = this._cls;
+      const modeName = {normal:'一般座位',group:'班級小組',exam:'考試座位',free:'自由座位',scilab:'自然教室',computer:'電腦教室'}[this.currentMode]||'座位表';
+      const canvas = await window.html2canvas(area, {
+        backgroundColor:'#fefce8',
+        scale:2,
+        useCORS:true,
+        logging:false
+      });
+      // 加上標題
+      const finalCanvas = document.createElement('canvas');
+      const pad=24, titleH=48;
+      finalCanvas.width=canvas.width+pad*2;
+      finalCanvas.height=canvas.height+titleH+pad*2;
+      const ctx=finalCanvas.getContext('2d');
+      ctx.fillStyle='#fefce8';
+      ctx.fillRect(0,0,finalCanvas.width,finalCanvas.height);
+      ctx.fillStyle='#1e293b';
+      ctx.font=`bold ${28}px sans-serif`;
+      ctx.textAlign='center';
+      ctx.fillText(`${cls.name} ─ ${modeName}`, finalCanvas.width/2, pad+titleH*0.65);
+      ctx.drawImage(canvas,pad,titleH+pad);
+      // 下載
+      const link=document.createElement('a');
+      link.download=`${cls.name}_${modeName}_${new Date().toLocaleDateString('zh-TW')}.png`;
+      link.href=finalCanvas.toDataURL('image/png');
+      link.click();
+    } catch(e) {
+      alert('截圖失敗：'+e.message);
+    }
+    btn.textContent='📸 截圖'; btn.disabled=false;
+  }
+
   _speak(text) {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
@@ -1605,42 +1701,138 @@ class ClassroomApp {
   }
 
   // ── Timer ─────────────────────────────────────────────────────
+  _renderDrawnList() {
+    const cls = this._cls;
+    const drawnSids = cls.drawnSids||[];
+    const container = document.getElementById('drawnList');
+    const emptyEl = document.getElementById('drawnEmpty');
+    if (!container) return;
+    container.innerHTML='';
+    if (!drawnSids.length) {
+      container.innerHTML='<span id="drawnEmpty" style="font-size:0.68rem;color:#cbd5e1;">（尚未抽籤）</span>';
+      return;
+    }
+    drawnSids.forEach(sid => {
+      const st = this._students[sid];
+      if (!st) return;
+      const tag = document.createElement('span');
+      tag.style.cssText=`font-size:0.68rem;padding:2px 6px;border-radius:10px;font-weight:600;
+        background:${st.gender==='male'?'#dbeafe':'#fee2e2'};
+        color:${st.gender==='male'?'#1e40af':'#991b1b'};`;
+      tag.textContent=`${st.seatNumber}號`;
+      tag.title=st.name;
+      container.appendChild(tag);
+    });
+  }
+
+  _fmtTime(sec) {
+    const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+    return h>0
+      ?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      :`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
   _startTimer() {
-    const h=parseInt(document.getElementById('timerH').value)||0;
-    const m=parseInt(document.getElementById('timerM').value)||0;
-    const s=parseInt(document.getElementById('timerS').value)||0;
-    const total=h*3600+m*60+s;
-    if(!total){alert('請設定有效時間');return;}
-    this.timerRemaining=total; this.timerPaused=false;
+    const isStopwatch = this.timerMode === 'stopwatch';
+    if (!isStopwatch) {
+      const h=parseInt(document.getElementById('timerH').value)||0;
+      const m=parseInt(document.getElementById('timerM').value)||0;
+      const s=parseInt(document.getElementById('timerS').value)||0;
+      const total=h*3600+m*60+s;
+      if(!total){alert('請設定有效時間');return;}
+      this.timerRemaining=total;
+    } else {
+      this.timerElapsed=0;
+    }
+    this.timerPaused=false;
     this._hideModal('timerModal');
+
+    // 控制列小顯示（保留）
     const disp=document.getElementById('timerDisplay');
     const pauseBtn=document.getElementById('pauseTimerBtn');
     const stopBtn=document.getElementById('stopTimerBtn');
     disp.style.display=''; pauseBtn.style.display=''; stopBtn.style.display='';
+
+    // 浮動大視窗
+    const float=document.getElementById('floatTimer');
+    const floatDisp=document.getElementById('floatTimerDisplay');
+    const floatLabel=document.getElementById('floatTimerLabel');
+    floatLabel.textContent=isStopwatch?'⏫ 正計時':'⏬ 倒數計時';
+    float.style.display='';
+
     const upd=()=>{
-      const h2=Math.floor(this.timerRemaining/3600);
-      const m2=Math.floor((this.timerRemaining%3600)/60);
-      const s2=this.timerRemaining%60;
-      disp.textContent=h2>0
-        ?`${String(h2).padStart(2,'0')}:${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`
-        :`${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`;
-      disp.className='timer-display'+(this.timerRemaining<=10&&this.timerRemaining>0?' urgent':'');
+      let txt, isUrgent=false;
+      if(isStopwatch){
+        txt=this._fmtTime(this.timerElapsed);
+      } else {
+        txt=this._fmtTime(this.timerRemaining);
+        isUrgent=this.timerRemaining<=10&&this.timerRemaining>0;
+      }
+      disp.textContent=txt;
+      floatDisp.textContent=txt;
+      disp.className='timer-display'+(isUrgent?' urgent':'');
+      floatDisp.style.color=isUrgent?'#f87171':'white';
+      floatDisp.style.animation=isUrgent?'blink 0.5s ease infinite':'';
     };
     upd();
+
+    if(this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval=setInterval(()=>{
       if(!this.timerPaused){
-        this.timerRemaining--;upd();
-        if(this.timerRemaining<=0){
-          clearInterval(this.timerInterval);
-          disp.style.display='none'; pauseBtn.style.display='none'; stopBtn.style.display='none';
-          this._playAlarm();
-          // 語音播報三次
-          const sayTime = (i) => setTimeout(() => this._speak('時間到囉'), i * 1800);
-          sayTime(0); sayTime(1); sayTime(2);
-          this._showModal('timeUpModal');
+        if(isStopwatch){
+          this.timerElapsed++;upd();
+        } else {
+          this.timerRemaining--;upd();
+          if(this.timerRemaining<=0){
+            clearInterval(this.timerInterval);this.timerInterval=null;
+            disp.style.display='none'; pauseBtn.style.display='none'; stopBtn.style.display='none';
+            float.style.display='none';
+            this._playAlarm();
+            const sayTime=(i)=>setTimeout(()=>this._speak('時間到囉'),i*1800);
+            sayTime(0);sayTime(1);sayTime(2);
+            this._showModal('timeUpModal');
+          }
         }
       }
     },1000);
+  }
+
+  _stopTimer() {
+    if(this.timerInterval){clearInterval(this.timerInterval);this.timerInterval=null;}
+    this.timerPaused=false;
+    document.getElementById('timerDisplay').style.display='none';
+    document.getElementById('pauseTimerBtn').style.display='none';
+    document.getElementById('stopTimerBtn').style.display='none';
+    document.getElementById('floatTimer').style.display='none';
+  }
+
+  _initFloatTimer() {
+    // 拖曳浮動視窗
+    const el=document.getElementById('floatTimer');
+    let ox=0,oy=0,sx=0,sy=0,dragging=false;
+    el.addEventListener('mousedown',e=>{
+      if(e.target.tagName==='BUTTON')return;
+      dragging=true; ox=el.offsetLeft; oy=el.offsetTop;
+      sx=e.clientX; sy=e.clientY;
+      el.style.right='auto'; el.style.bottom='auto';
+      el.style.left=ox+'px'; el.style.top=oy+'px';
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging)return;
+      el.style.left=(ox+e.clientX-sx)+'px';
+      el.style.top=(oy+e.clientY-sy)+'px';
+    });
+    document.addEventListener('mouseup',()=>dragging=false);
+    // 浮動視窗按鈕
+    document.getElementById('floatPauseBtn')?.addEventListener('click',()=>{
+      this.timerPaused=!this.timerPaused;
+      document.getElementById('floatPauseBtn').textContent=this.timerPaused?'繼續':'暫停';
+      document.getElementById('pauseTimerBtn').textContent=this.timerPaused?'繼續':'暫停';
+    });
+    document.getElementById('floatStopBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定停止計時器？'))return;
+      this._stopTimer();
+    });
   }
 
   _playAlarm() {
@@ -2017,24 +2209,28 @@ class ClassroomApp {
     document.getElementById('showScoresBtn')?.addEventListener('click',()=>this._showScores());
     document.getElementById('closeScoresBtn')?.addEventListener('click',()=>this._hideModal('scoresModal'));
     document.getElementById('resetAllScoresBtn')?.addEventListener('click',()=>{
-      if(!confirm('確定重置全部積分？'))return;
       const cls=this.data.classes[this.currentClassId];
+      const total=Object.keys(cls.scores||{}).length;
+      const input=prompt(`⚠️ 這將清除全班 ${total} 位學生的所有積分與歷史記錄，且無法還原。\n\n請輸入「確認清除」以繼續：`);
+      if(input!=='確認清除'){alert('已取消，未清除任何資料。');return;}
       cls.scores={};cls.scoreHistory={};
       this._scheduleSave();this._hideModal('scoresModal');
+      alert('✓ 個人積分已全部清除');
     });
 
     // Group Scores
     document.getElementById('showGroupScoresBtn')?.addEventListener('click',()=>this._showGroupScores());
     document.getElementById('closeGroupScoresBtn')?.addEventListener('click',()=>this._hideModal('groupScoresModal'));
     document.getElementById('resetGroupScoresBtn')?.addEventListener('click',()=>{
-      if(!confirm('確定重置小組積分？'))return;
+      const isScilab=this.currentMode==='scilab';
+      const label=isScilab?'自然教室小組':'班級小組';
+      const input=prompt(`⚠️ 這將清除所有「${label}」積分與歷史記錄，且無法還原。\n\n請輸入「確認清除」以繼續：`);
+      if(input!=='確認清除'){alert('已取消，未清除任何資料。');return;}
       const cls=this.data.classes[this.currentClassId];
-      if(app.currentMode==='scilab'){
-        cls.scilabGroupScores={};cls.scilabGroupScoreHistory={};
-      } else {
-        cls.groupScores={};cls.groupScoreHistory={};
-      }
+      if(isScilab){cls.scilabGroupScores={};cls.scilabGroupScoreHistory={};}
+      else{cls.groupScores={};cls.groupScoreHistory={};}
       this._scheduleSave();this._hideModal('groupScoresModal');
+      alert(`✓ ${label}積分已全部清除`);
     });
 
     // Group score modal
@@ -2047,6 +2243,22 @@ class ClassroomApp {
     });
 
     // Lottery
+    // 排除已抽 toggle
+    document.getElementById('excludeDrawnBtn')?.addEventListener('click',()=>{
+      const btn=document.getElementById('excludeDrawnBtn');
+      const active=btn.classList.toggle('active-exclude');
+      btn.style.background=active?'#fee2e2':'';
+      btn.style.borderColor=active?'#fca5a5':'';
+      btn.style.color=active?'#dc2626':'';
+      btn.textContent=active?'🚫 排除中':'🚫 排除已抽';
+    });
+    document.getElementById('clearDrawnBtn')?.addEventListener('click',()=>{
+      if(!confirm('確定清除已抽名單？'))return;
+      const cls=this.data.classes[this.currentClassId];
+      cls.drawnSids=[];
+      this._scheduleSave();
+      this._renderDrawnList();
+    });
     document.getElementById('lotteryAllBtn')?.addEventListener('click',()=>this._startLottery('all'));
     document.getElementById('lotteryBoysBtn')?.addEventListener('click',()=>this._startLottery('male'));
     document.getElementById('lotteryGirlsBtn')?.addEventListener('click',()=>this._startLottery('female'));
@@ -2054,20 +2266,39 @@ class ClassroomApp {
     document.getElementById('closeLotteryResult')?.addEventListener('click',()=>this._hideModal('lotteryResultModal'));
 
     // Timer
+    this.timerMode='countdown'; // default
+    this.timerElapsed=0;
     document.getElementById('timerBtn')?.addEventListener('click',()=>this._showModal('timerModal'));
     document.getElementById('startTimerBtn')?.addEventListener('click',()=>this._startTimer());
     document.getElementById('cancelTimerBtn')?.addEventListener('click',()=>this._hideModal('timerModal'));
+    // 模式切換按鈕
+    document.getElementById('timerModeCountdown')?.addEventListener('click',()=>{
+      this.timerMode='countdown';
+      document.getElementById('timerModeCountdown').style.cssText='flex:1;padding:6px;border-radius:7px;border:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;font-weight:700;font-size:0.82rem;cursor:pointer;';
+      document.getElementById('timerModeStopwatch').style.cssText='flex:1;padding:6px;border-radius:7px;border:none;background:transparent;color:#64748b;font-weight:700;font-size:0.82rem;cursor:pointer;';
+      document.getElementById('countdownSection').style.display='';
+      document.getElementById('stopwatchSection').style.display='none';
+      document.getElementById('startTimerBtn').textContent='▶ 開始';
+    });
+    document.getElementById('timerModeStopwatch')?.addEventListener('click',()=>{
+      this.timerMode='stopwatch';
+      document.getElementById('timerModeStopwatch').style.cssText='flex:1;padding:6px;border-radius:7px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;font-weight:700;font-size:0.82rem;cursor:pointer;';
+      document.getElementById('timerModeCountdown').style.cssText='flex:1;padding:6px;border-radius:7px;border:none;background:transparent;color:#64748b;font-weight:700;font-size:0.82rem;cursor:pointer;';
+      document.getElementById('countdownSection').style.display='none';
+      document.getElementById('stopwatchSection').style.display='';
+      document.getElementById('startTimerBtn').textContent='▶ 開始正計時';
+    });
     document.getElementById('pauseTimerBtn')?.addEventListener('click',()=>{
       this.timerPaused=!this.timerPaused;
-      document.getElementById('pauseTimerBtn').textContent=this.timerPaused?'繼續':'暫停';
+      const t=this.timerPaused?'繼續':'暫停';
+      document.getElementById('pauseTimerBtn').textContent=t;
+      document.getElementById('floatPauseBtn').textContent=t;
     });
     document.getElementById('stopTimerBtn')?.addEventListener('click',()=>{
       if(!confirm('確定停止計時器？'))return;
-      clearInterval(this.timerInterval);this.timerInterval=null;this.timerPaused=false;
-      document.getElementById('timerDisplay').style.display='none';
-      document.getElementById('pauseTimerBtn').style.display='none';
-      document.getElementById('stopTimerBtn').style.display='none';
+      this._stopTimer();
     });
+    this._initFloatTimer();
     document.querySelectorAll('.quick-time').forEach(btn=>{
       btn.addEventListener('click',()=>{
         const m=parseInt(btn.dataset.m);
@@ -2077,6 +2308,9 @@ class ClassroomApp {
       });
     });
     document.getElementById('closeTimeUpBtn')?.addEventListener('click',()=>this._hideModal('timeUpModal'));
+
+    // 截圖存圖
+    document.getElementById('screenshotBtn')?.addEventListener('click',()=>this._saveScreenshot());
 
     // Student settings
     document.getElementById('settingsAddBtn')?.addEventListener('click',()=>this._adjustScore(1));
