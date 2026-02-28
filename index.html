@@ -503,8 +503,8 @@ background-size:28px 28px;min-height:500px;}
     <!-- 快速匯入模式 -->
     <div id="bulkImportView" style="display:none;">
       <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.75rem;">
-        📝 每行一個學生，格式：<code style="background:#fef3c7;padding:1px 5px;border-radius:4px;">座號 姓名 性別(m/f，選填)</code><br>
-        <span style="font-size:0.75rem;color:#92400e;">例：<br>1 王曉明 m<br>2 陳小芳 f<br>3 李大明</span>
+        📝 每行一個學生，格式：<code style="background:#fef3c7;padding:1px 5px;border-radius:4px;">座號 姓名</code>（性別選填）<br>
+        <span style="font-size:0.75rem;color:#92400e;">座號 1–20 預設男生，21–40 預設女生<br>需要覆蓋時加 m 或 f：&nbsp;<code style="background:#fef3c7;padding:1px 4px;border-radius:3px;">5 王小明 f</code></span>
       </div>
       <textarea id="importText" class="form-input" rows="12"
         placeholder="1 王曉明 m&#10;2 陳小芳 f&#10;3 李大明&#10;..."
@@ -773,10 +773,11 @@ class ClassroomApp {
         if (!this.data.classes) this.data.classes = {};
         if (!this.data.homeworkNotes) this.data.homeworkNotes = {};
         // 補齊 classOrder（舊資料相容）
-        // 補齊新模式座位
+        // 補齊新模式座位和欄位
         Object.values(this.data.classes).forEach(cls => {
           if (!cls.scilabSeats)   cls.scilabSeats   = {};
           if (!cls.computerSeats) cls.computerSeats = {};
+          if (!cls.groupNames)    cls.groupNames     = {};
         });
         if (!this.data.classOrder || !Array.isArray(this.data.classOrder)) {
           this.data.classOrder = Object.keys(this.data.classes);
@@ -835,6 +836,7 @@ class ClassroomApp {
     for (let i=21;i<=35;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'female'};
     return { name, students, normalSeats:{}, groupSeats:{}, examSeats:{}, freeSeats:{},
              scilabSeats:{}, computerSeats:{},
+             groupNames:{},
              scores:{}, scoreHistory:{}, groupScores:{}, groupScoreHistory:{} };
   }
 
@@ -1051,17 +1053,42 @@ class ClassroomApp {
   }
 
   // Group: 6 groups × 5 seats
+  // 老師視角（從教室後方看）：
+  //   pos0=最前單座; pos1=左, pos2=右(第2排); pos3=左, pos4=右(最後排)
+  //   組順序: 上半3組[3,4,5]+下半3組[0,1,2] → 顯示左欄[0,1,2]右欄[3,4,5]
+  // 學生視角：上下翻轉，每排內左右不變
+  //   pos順序: [3,4] → [1,2] → [0]
+  //   組順序翻轉: 上半/下半對調
   _renderGroup(container) {
+    const sv = this.isStudentView;
     const sz = this.seatSize;
     const gc = document.createElement('div'); gc.className='group-grid';
-    const order = [3,4,5,0,1,2];
-    order.forEach(g => {
+    // 老師視角: 左欄[0,1,2]由上→下, 右欄[3,4,5]由上→下
+    // 學生視角: 上下翻 → 左欄[2,1,0], 右欄[5,4,3]（左右欄不換）
+    const groupOrder = sv ? [2,1,0,5,4,3] : [0,1,2,3,4,5];
+    // 每組內座位排列：老師視角 [[0],[1,2],[3,4]]；學生視角上下翻 [[3,4],[1,2],[0]]
+    const seatRows = sv ? [[3,4],[1,2],[0]] : [[0],[1,2],[3,4]];
+    // 組名稱存在class資料裡
+    const cls = this._cls;
+    if (!cls.groupNames) cls.groupNames = {};
+    groupOrder.forEach(g => {
       const box = document.createElement('div'); box.className='group-box';
+      const groupName = cls.groupNames[g] || `第${g+1}組`;
       const lbl = document.createElement('button'); lbl.className='group-lbl-btn';
-      lbl.textContent=`第${g+1}組`; lbl.onclick=()=>this._showGroupScoreModal(g+1);
+      lbl.textContent = groupName;
+      lbl.onclick = () => this._showGroupScoreModal(g+1);
+      // 雙擊重命名
+      lbl.ondblclick = (e) => {
+        e.stopPropagation();
+        const newName = prompt(`修改組名（目前：${groupName}）`, groupName);
+        if (newName !== null && newName.trim()) {
+          cls.groupNames[g] = newName.trim();
+          this._scheduleSave();
+          this._renderSeats();
+        }
+      };
       box.appendChild(lbl);
       const inner = document.createElement('div'); inner.className='group-inner';
-      const seatRows = this.isStudentView?[[3,4],[1,2],[0]]:[[0],[1,2],[3,4]];
       seatRows.forEach(sr => {
         const rDiv = document.createElement('div'); rDiv.className='group-row';
         sr.forEach(s => rDiv.appendChild(this._mkSeat(g*5+s, sz)));
@@ -1112,8 +1139,19 @@ class ClassroomApp {
 
       const lbl = document.createElement('button');
       lbl.className = 'scilab-table-lbl';
-      lbl.textContent = `第${t+1}組`;
+      const scGroupName = (this._cls.groupNames||{})[t] || `第${t+1}組`;
+      lbl.textContent = scGroupName;
       lbl.onclick = () => this._showGroupScoreModal(t+1);
+      lbl.ondblclick = (e) => {
+        e.stopPropagation();
+        const newName = prompt(`修改組名（目前：${scGroupName}）`, scGroupName);
+        if (newName !== null && newName.trim()) {
+          if (!this._cls.groupNames) this._cls.groupNames = {};
+          this._cls.groupNames[t] = newName.trim();
+          this._scheduleSave();
+          this._renderSeats();
+        }
+      };
       tableEl.appendChild(lbl);
 
       if (sv) {
@@ -1562,7 +1600,10 @@ class ClassroomApp {
         if(this.timerRemaining<=0){
           clearInterval(this.timerInterval);
           disp.style.display='none'; pauseBtn.style.display='none'; stopBtn.style.display='none';
-          this._playAlarm(); this._speak('時間到囉');
+          this._playAlarm();
+          // 語音播報三次
+          const sayTime = (i) => setTimeout(() => this._speak('時間到囉'), i * 1800);
+          sayTime(0); sayTime(1); sayTime(2);
           this._showModal('timeUpModal');
         }
       }
@@ -1791,10 +1832,12 @@ class ClassroomApp {
       if (isNaN(sn) || sn < 1 || sn > 99) { errors.push(`第${i+1}行：座號無效`); return; }
       const name = parts[1];
       if (!name) { errors.push(`第${i+1}行：缺少姓名`); return; }
-      let gender = 'male';
+      // 預設：座號21-40為女生，其他為男生；可用 m/f 手動覆蓋
+      let gender = (sn >= 21 && sn <= 40) ? 'female' : 'male';
       if (parts[2]) {
         const g = parts[2].toLowerCase();
         if (g === 'f' || g === '女' || g === 'female') gender = 'female';
+        else if (g === 'm' || g === '男' || g === 'male') gender = 'male';
       }
       parsed.push({ seatNumber: sn, name, gender });
     });
