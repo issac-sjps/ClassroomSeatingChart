@@ -395,8 +395,8 @@ background-size:28px 28px;min-height:500px;}
     <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
     <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
     <span id="viewIndicator" style="font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:20px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🎓 老師視角</span>
-    <button class="btn btn-outline" id="showMissingHwBtn" style="border-color:#f59e0b;color:#d97706;">📋 缺交作業</button>
     <div class="divider"></div>
+    <button class="btn btn-outline" id="showMissingHwBtn" style="border-color:#f59e0b;color:#d97706;">📋 缺交作業</button>
     <!-- 右側區塊：抽籤 + 計時器 -->
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
       <!-- Lottery -->
@@ -467,6 +467,12 @@ background-size:28px 28px;min-height:500px;}
       </div>
     </div>
 
+  </div>
+
+  <!-- 底部缺交狀態列 -->
+  <div id="hwStatusBar" style="background:#fffbeb;border-top:1.5px solid #fde68a;padding:6px 14px;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;min-height:34px;max-height:72px;overflow-y:auto;">
+    <span style="font-size:0.7rem;font-weight:700;color:#92400e;white-space:nowrap;padding-top:2px;">⭐ 缺交：</span>
+    <div id="hwStatusList" style="display:flex;flex-wrap:wrap;gap:6px;flex:1;"></div>
   </div>
 </div>
 
@@ -738,13 +744,34 @@ background-size:28px 28px;min-height:500px;}
 <!-- Homework -->
 <!-- 缺交作業總覽 Modal -->
 <div class="modal-overlay" id="missingHwModal">
-  <div class="modal-box" style="max-width:560px;max-height:80vh;display:flex;flex-direction:column;">
+  <div class="modal-box" style="max-width:600px;max-height:88vh;display:flex;flex-direction:column;">
     <div class="modal-title" style="flex-shrink:0;">
-      📋 缺交作業總覽
+      📋 缺交作業管理
       <span id="missingHwCount" style="font-size:0.75rem;font-weight:600;color:#f59e0b;margin-left:8px;"></span>
     </div>
+
+    <!-- 批次新增區塊 -->
+    <div style="background:#fefce8;border:1.5px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;flex-shrink:0;">
+      <div style="font-size:0.75rem;font-weight:700;color:#92400e;margin-bottom:7px;">➕ 批次登記缺交</div>
+      <div style="display:flex;gap:7px;margin-bottom:7px;">
+        <div style="flex:1;">
+          <label style="font-size:0.68rem;color:#64748b;display:block;margin-bottom:3px;">作業名稱</label>
+          <input type="text" id="batchHwName" class="form-input" placeholder="例：數學p.25" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.68rem;color:#64748b;display:block;margin-bottom:3px;">座號（空格或逗號分隔）</label>
+          <input type="text" id="batchHwSeats" class="form-input" placeholder="例：1 3 5 或 1,3,5" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <button class="btn btn-primary" id="batchAddHwBtn" style="padding:5px 16px;font-size:0.82rem;">登記</button>
+        <span id="batchHwResult" style="font-size:0.75rem;color:#10b981;"></span>
+      </div>
+    </div>
+
+    <!-- 缺交清單 -->
     <div id="missingHwBody" style="overflow-y:auto;flex:1;padding-right:4px;"></div>
-    <button class="btn btn-gray" id="closeMissingHwBtn" style="width:100%;padding:0.5rem;margin-top:1rem;flex-shrink:0;">關閉</button>
+    <button class="btn btn-gray" id="closeMissingHwBtn" style="width:100%;padding:0.5rem;margin-top:10px;flex-shrink:0;">關閉</button>
   </div>
 </div>
 
@@ -948,7 +975,7 @@ class ClassroomApp {
   _hwCount(sid) { return (this._hw[sid]||[]).length; }
 
   // ── Render ───────────────────────────────────────────────────
-  _renderAll() { this._renderStudentList(); this._renderSeats(); this._renderDrawnList(); }
+  _renderAll() { this._renderStudentList(); this._renderSeats(); this._renderDrawnList(); this._renderHwStatusBar(); }
 
   _renderTabs() {
     const container = document.getElementById('classTabs');
@@ -2018,6 +2045,36 @@ class ClassroomApp {
     this._showModal('homeworkModal');
   }
 
+  _renderHwStatusBar() {
+    const bar = document.getElementById('hwStatusList');
+    if (!bar) return;
+    const hw = this.data.homeworkNotes || {};
+    const students = this._students;
+    // 按作業名分組
+    const byHw = {};
+    Object.entries(hw).forEach(([sid, list]) => {
+      const st = students[sid];
+      if (!st || !list.length) return;
+      list.forEach(h => {
+        if (!byHw[h.name]) byHw[h.name] = [];
+        byHw[h.name].push(st);
+      });
+    });
+    bar.innerHTML = '';
+    if (!Object.keys(byHw).length) {
+      bar.innerHTML = '<span style="font-size:0.7rem;color:#10b981;font-weight:600;">無缺交 ✓</span>';
+      return;
+    }
+    Object.entries(byHw).sort(([a],[b])=>a.localeCompare(b,'zh')).forEach(([hwName, sts]) => {
+      const chip = document.createElement('div');
+      chip.style.cssText = 'background:white;border:1.5px solid #fde68a;border-radius:8px;padding:2px 8px 2px 8px;display:flex;align-items:center;gap:5px;';
+      const sorted = sts.sort((a,b)=>a.seatNumber-b.seatNumber);
+      const seats = sorted.map(s=>`<span style="font-weight:700;color:${s.gender==='male'?'#1e40af':'#dc2626'};">${s.seatNumber}</span>`).join(' ');
+      chip.innerHTML = `<span style="font-size:0.68rem;font-weight:700;color:#92400e;border-right:1px solid #fde68a;padding-right:6px;margin-right:2px;">${hwName}</span><span style="font-size:0.7rem;">${seats}</span>`;
+      bar.appendChild(chip);
+    });
+  }
+
   _showMissingHw() {
     const hw = this.data.homeworkNotes || {};
     const students = this._students;
@@ -2499,6 +2556,48 @@ class ClassroomApp {
     });
     document.getElementById('showMissingHwBtn')?.addEventListener('click',()=>this._showMissingHw());
     document.getElementById('closeMissingHwBtn')?.addEventListener('click',()=>this._hideModal('missingHwModal'));
+    // 批次新增
+    document.getElementById('batchAddHwBtn')?.addEventListener('click',()=>{
+      const hwName = document.getElementById('batchHwName').value.trim();
+      const seatsRaw = document.getElementById('batchHwSeats').value.trim();
+      if (!hwName) { alert('請輸入作業名稱'); return; }
+      if (!seatsRaw) { alert('請輸入座號'); return; }
+      // 解析座號（支援空格、逗號、頓號）
+      const seatNums = seatsRaw.split(/[\s,，、]+/).map(s=>parseInt(s)).filter(n=>!isNaN(n)&&n>0);
+      if (!seatNums.length) { alert('座號格式有誤'); return; }
+      // 找對應學生
+      const allStudents = Object.values(this._students);
+      if (!this.data.homeworkNotes) this.data.homeworkNotes = {};
+      const today = new Date().toLocaleDateString('zh-TW');
+      let added = 0, notFound = [];
+      seatNums.forEach(sn => {
+        const st = allStudents.find(s => s.seatNumber === sn);
+        if (!st) { notFound.push(sn); return; }
+        if (!this.data.homeworkNotes[st.id]) this.data.homeworkNotes[st.id] = [];
+        if (this.data.homeworkNotes[st.id].some(h => h.name === hwName)) return; // 已有
+        this.data.homeworkNotes[st.id].push({ name: hwName, date: today });
+        added++;
+      });
+      const resultEl = document.getElementById('batchHwResult');
+      if (added > 0) {
+        resultEl.textContent = `✓ 已登記 ${added} 人${notFound.length?`，找不到座號：${notFound.join(', ')}`:''}`;
+        resultEl.style.color = '#10b981';
+        document.getElementById('batchHwSeats').value = '';
+        this._scheduleSave();
+        this._renderAll();
+        this._showMissingHw(); // 重新整理清單
+      } else {
+        resultEl.textContent = notFound.length ? `找不到座號：${notFound.join(', ')}` : '這些學生已都有登記';
+        resultEl.style.color = '#ef4444';
+      }
+    });
+    // Enter 快速登記
+    document.getElementById('batchHwSeats')?.addEventListener('keydown', e => {
+      if (e.key==='Enter') document.getElementById('batchAddHwBtn').click();
+    });
+    document.getElementById('batchHwName')?.addEventListener('keydown', e => {
+      if (e.key==='Enter') document.getElementById('batchHwSeats').focus();
+    });
 
     // Random / Reset
     document.getElementById('randomBtn')?.addEventListener('click',()=>this._randomSeating());
