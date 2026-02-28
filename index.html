@@ -288,6 +288,9 @@ background-size:28px 28px;min-height:500px;}
 /* ── Seat size slider ── */
 .size-slider{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:#e2e8f0;outline:none;cursor:pointer;}
 .size-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#3b82f6;cursor:pointer;}
+.size-preset-btn{padding:2px 7px;font-size:0.7rem;font-weight:700;border-radius:5px;border:1.5px solid #d1fae5;background:#f0fdf4;color:#065f46;cursor:pointer;transition:all 0.12s;}
+.size-preset-btn:hover{background:#d1fae5;border-color:#10b981;}
+.size-preset-btn.active{background:linear-gradient(135deg,#10b981,#059669);color:white;border-color:#059669;box-shadow:0 2px 6px rgba(16,185,129,0.35);}
 
 /* ── Rename inline input ── */
 .rename-input{border:1.5px solid #93c5fd;border-radius:6px;padding:2px 6px;font-size:0.82rem;font-family:'Noto Sans TC',sans-serif;outline:none;max-width:120px;}
@@ -404,9 +407,16 @@ background-size:28px 28px;min-height:500px;}
     <div class="classroom-panel">
       <div class="classroom-toolbar">
         <span class="mode-label" id="modeLabel">一般座位模式</span>
-        <!-- Seat Size Slider -->
-        <span style="font-size:0.75rem;color:#94a3b8;">座位大小</span>
-        <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="160" value="100" style="width:90px;">
+        <!-- Seat Size Buttons -->
+        <span style="font-size:0.72rem;color:#92400e;font-weight:600;">座位大小</span>
+        <div style="display:flex;gap:3px;">
+          <button class="size-preset-btn" data-sz="72" title="超小">XS</button>
+          <button class="size-preset-btn" data-sz="88" title="小">S</button>
+          <button class="size-preset-btn active" data-sz="100" title="中">M</button>
+          <button class="size-preset-btn" data-sz="120" title="大">L</button>
+          <button class="size-preset-btn" data-sz="148" title="超大">XL</button>
+        </div>
+        <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="160" value="100" style="width:70px;">
         <button class="btn btn-primary btn-sm" id="randomBtn">🔀 隨機入座</button>
         <button class="btn btn-gray btn-sm" id="resetBtn">重置座位</button>
       </div>
@@ -1117,40 +1127,50 @@ class ClassroomApp {
       shortOrder.forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
       tableEl.appendChild(shortRow);
 
-      // 左0-2桌、右3-5桌
+      // 老師視角: idx 0-2→左欄, 3-5→右欄
+      // 學生視角: tableOrder=[2,1,0,5,4,3], idx 0-2仍是左欄，但左右欄整體互換
       if (idx < 3) leftSection.appendChild(tableEl);
       else rightSection.appendChild(tableEl);
     });
 
-    grid.appendChild(leftSection);
-    grid.appendChild(rightSection);
+    // 學生視角：左右欄整體對調（模擬180度翻轉）
+    if (this.isStudentView) {
+      grid.appendChild(rightSection);
+      grid.appendChild(leftSection);
+    } else {
+      grid.appendChild(leftSection);
+      grid.appendChild(rightSection);
+    }
     container.appendChild(grid);
   }
 
-  // ── Computer Room: 3排 × 10人 面向講桌 ──
-  // 座位編號：row0~2，每row pos = row*10 + 0..9
+  // ── Computer Room: 縱排 3欄×10列 面向講桌 ──
+  // posKey: col*10 + row  (col=0,1,2; row=0..9 前→後)
+  // 螢幕: 顯示 10 橫列，每列 3 個座位（代表左中右3欄）
+  // 老師視角: 第1列在講台旁，第10列最遠
+  // 學生視角: 翻轉，第10列(最遠)在上，第1列(講台旁)在下
   _renderComputer(container) {
-    const sz = Math.min(this.seatSize, 110); // 電腦教室桌子稍小
+    const sz = Math.min(this.seatSize, 105);
     const area = document.createElement('div');
-    area.className = 'computer-area';
+    area.style.cssText = 'display:flex;flex-direction:column;gap:6px;align-items:center;';
 
-    const rowOrder = this.isStudentView ? [2,1,0] : [0,1,2];
-    const colOrder = this.isStudentView
-      ? [9,8,7,6,5,4,3,2,1,0]
-      : [0,1,2,3,4,5,6,7,8,9];
+    // rowOrder: 老師視角 row0(前)在下方→從0渲染到9; 學生視角相反
+    const rowOrder = this.isStudentView ? [9,8,7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7,8,9];
+    // 欄順序：老師視角 col=0(左)→2(右); 學生視角也左→右（不需翻轉，只翻前後）
+    const colOrder = [0,1,2];
 
     rowOrder.forEach(row => {
       const wrap = document.createElement('div');
-      wrap.className = 'computer-row-wrap';
+      wrap.style.cssText = 'display:flex;align-items:center;gap:6px;';
 
       const lbl = document.createElement('div');
-      lbl.className = 'computer-row-label';
-      lbl.textContent = `第${row+1}排`;
+      lbl.style.cssText = 'font-size:0.68rem;font-weight:700;color:#7c3aed;min-width:32px;text-align:right;background:#f3e8ff;border:1px solid #ddd6fe;border-radius:5px;padding:2px 4px;';
+      lbl.textContent = `第${row+1}列`;
       wrap.appendChild(lbl);
 
       const rowDiv = document.createElement('div');
-      rowDiv.className = 'computer-row';
-      colOrder.forEach(col => rowDiv.appendChild(this._mkSeat(row*10+col, sz)));
+      rowDiv.style.cssText = 'display:flex;gap:6px;';
+      colOrder.forEach(col => rowDiv.appendChild(this._mkSeat(col*10+row, sz)));
       wrap.appendChild(rowDiv);
 
       area.appendChild(wrap);
@@ -1215,11 +1235,19 @@ class ClassroomApp {
 
     const sz = this.seatSize;
     const freeSeats = this._seats;
+    // 計算 freeArea 的高度（固定 500px minHeight），用於學生視角翻轉
+    const areaH = 500;
+    const seatH = Math.round(sz * 0.65);
     Object.entries(freeSeats).forEach(([posKey, sid]) => {
       const st = this._students[sid];
       if (!st) return;
       const coords = posKey.split(',');
-      const x = parseFloat(coords[0]), y = parseFloat(coords[1]);
+      let x = parseFloat(coords[0]);
+      let y = parseFloat(coords[1]);
+      // 學生視角：垂直翻轉 y 座標
+      if (this.isStudentView) {
+        y = areaH - y - seatH;
+      }
       const el = this._mkFreeSeat(posKey, st, x, y, sz);
       wrap.appendChild(el);
     });
@@ -1268,6 +1296,7 @@ class ClassroomApp {
     const el = document.createElement('div');
     el.className = 'free-seat ' + (st.gender === 'male' ? 'free-seat-male' : 'free-seat-female');
     el.dataset.posKey = posKey;
+    el.dataset.pk = btoa(unescape(encodeURIComponent(posKey))); // safe for selector
     el.style.left = x+'px';
     el.style.top  = y+'px';
     el.style.width = sz+'px';
@@ -1426,9 +1455,13 @@ class ClassroomApp {
     if (count > eligible.length) { alert(`只有${eligible.length}人，不足${count}人`); return; }
     this.isLotteryRunning = true;
     this.flashIntervals = [];
-    const getEl = (posKey) => isFree
-      ? document.querySelector(`[data-pos-key="${posKey}"]`)
-      : document.querySelector(`[data-position="${posKey}"]`);
+    const getEl = (posKey) => {
+      if (isFree) {
+        // posKey may contain commas, can't use CSS selector directly
+        return Array.from(document.querySelectorAll('.free-seat')).find(e => e.dataset.posKey === posKey) || null;
+      }
+      return document.querySelector(`[data-position="${posKey}"]`);
+    };
     eligible.forEach(({posKey}) => {
       const el = getEl(posKey);
       if (!el) return;
@@ -1706,6 +1739,13 @@ class ClassroomApp {
     const seats={};
     students.forEach((st,i)=>{if(i<positions.length)seats[positions[i]]=st.id;});
     this._setSeats(seats);this._scheduleSave();this._renderSeats();
+  }
+
+  _syncSizePresets() {
+    const presets=[72,88,100,120,148];
+    document.querySelectorAll('.size-preset-btn').forEach((btn,i)=>{
+      btn.classList.toggle('active', Math.abs(parseInt(btn.dataset.sz)-this.seatSize)<8);
+    });
   }
 
   // ── Bulk Tab Switch ──────────────────────────────────────────
@@ -2007,10 +2047,20 @@ class ClassroomApp {
     // Export
     document.getElementById('exportBtn')?.addEventListener('click',()=>this._exportCSV());
 
-    // Seat size slider
+    // Seat size slider + preset buttons
     document.getElementById('seatSizeSlider')?.addEventListener('input',e=>{
       this.seatSize=parseInt(e.target.value);
+      this._syncSizePresets();
       this._renderSeats();
+    });
+    document.querySelectorAll('.size-preset-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const sz=parseInt(btn.dataset.sz);
+        this.seatSize=sz;
+        document.getElementById('seatSizeSlider').value=sz;
+        this._syncSizePresets();
+        this._renderSeats();
+      });
     });
 
     // Close modal on overlay click
