@@ -164,7 +164,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f0f4f8;color:#1e293b;heig
 .podium{text-align:center;padding:0.625rem 2rem;background:linear-gradient(135deg,#1e40af,#1d4ed8);color:white;border-radius:10px;margin-bottom:1.25rem;font-size:0.85rem;font-weight:700;letter-spacing:0.2em;box-shadow:0 3px 10px rgba(30,64,175,0.3);display:inline-block;min-width:160px;position:relative;left:50%;transform:translateX(-50%);}
 
 /* ── Normal/Exam Seat ── */
-.seat{background:white;border:1.5px solid #e2e8f0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.seat{background:white;border:1.5px solid #e2e8f0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;position:relative;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
 .seat:hover{box-shadow:0 3px 10px rgba(0,0,0,0.14);transform:translateY(-1px);}
 /* 空位 */
 .seat.empty-seat{background:white;border-color:#e2e8f0;}
@@ -233,35 +233,26 @@ background-size:28px 28px;min-height:500px;}
 #freeArea.drop-active{background-color:rgba(139,92,246,0.04);}
 
 /* ── Lottery animations ── */
-/* 抽籤閃爍 - 用高優先度覆蓋性別底色 */
-.lottery-flash,
-.seat.seat-male.lottery-flash,
-.seat.seat-female.lottery-flash,
-.free-seat.lottery-flash,
-.free-seat.free-seat-male.lottery-flash,
-.free-seat.free-seat-female.lottery-flash {
-  background: #fef08a !important;
-  border-color: #eab308 !important;
-  animation: lflash 0.25s ease-in-out infinite alternate !important;
-  box-shadow: 0 0 18px rgba(234,179,8,0.7) !important;
+/* 抽籤閃爍 - 強制覆蓋所有底色 */
+.lottery-flash {
+  background: #fde047 !important;
+  border-color: #ca8a04 !important;
+  box-shadow: 0 0 22px rgba(234,179,8,0.85) !important;
+  animation: lflash 0.28s ease-in-out infinite alternate !important;
+  transition: none !important;
 }
 @keyframes lflash {
-  0%  { background:#fef08a!important; border-color:#eab308!important; box-shadow:0 0 10px rgba(234,179,8,0.5)!important; }
-  100%{ background:#fde047!important; border-color:#ca8a04!important; box-shadow:0 0 28px rgba(234,179,8,0.9)!important; }
+  0%  { background:#fef08a!important; border-color:#eab308!important; box-shadow:0 0 10px rgba(234,179,8,0.6)!important; transform:scale(1); }
+  100%{ background:#fbbf24!important; border-color:#b45309!important; box-shadow:0 0 32px rgba(251,191,36,1)!important; transform:scale(1.05); }
 }
-/* 抽中高亮 */
-.lottery-selected,
-.seat.seat-male.lottery-selected,
-.seat.seat-female.lottery-selected,
-.free-seat.lottery-selected,
-.free-seat.free-seat-male.lottery-selected,
-.free-seat.free-seat-female.lottery-selected {
+.lottery-selected {
   background: linear-gradient(135deg,#fca5a5,#f87171) !important;
   border-color: #ef4444 !important;
-  box-shadow: 0 0 20px rgba(239,68,68,0.6) !important;
-  animation: lpulse 1s ease-in-out infinite !important;
+  box-shadow: 0 0 24px rgba(239,68,68,0.7) !important;
+  animation: lpulse 0.9s ease-in-out infinite !important;
+  transition: none !important;
 }
-@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
 
 /* ── Timer ── */
 .timer-display{font-size:1rem;font-weight:700;color:#1e293b;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
@@ -1090,11 +1081,17 @@ class ClassroomApp {
     const gc = document.createElement('div'); gc.className='group-grid';
     // 老師視角: 左欄[0,1,2]由上→下, 右欄[3,4,5]由上→下
     // 學生視角: 上下翻 → 左欄[2,1,0], 右欄[5,4,3]（左右欄不換）
-    // 老師視角: 上排[0,1,2] 下排[3,4,5]（左→右）
-    // 學生視角: 上下翻，左右不動 → 上排[3,4,5] 下排[0,1,2]
-    const groupOrder = sv ? [3,4,5,0,1,2] : [0,1,2,3,4,5];
-    // 每組內座位排列：老師視角 [[0],[1,2],[3,4]]；學生視角上下翻 [[3,4],[1,2],[0]]
-    const seatRows = sv ? [[3,4],[1,2],[0]] : [[0],[1,2],[3,4]];
+    // 老師視角 grid (3欄):
+    //   [0組, 1組, 2組]  上排
+    //   [3組, 4組, 5組]  下排
+    // 學生視角 180度翻轉 (上下+左右):
+    //   [5組, 4組, 3組]  上排
+    //   [2組, 1組, 0組]  下排
+    const groupOrder = sv ? [5,4,3,2,1,0] : [0,1,2,3,4,5];
+    // 每組內座位 180度翻轉 (前後+左右):
+    //   老師: [0(前)], [1左,2右], [3左,4右(後)]
+    //   學生: [4左,3右(原後→前)], [2左,1右], [0]
+    const seatRows = sv ? [[4,3],[2,1],[0]] : [[0],[1,2],[3,4]];
     // 組名稱存在class資料裡
     const cls = this._cls;
     if (!cls.groupNames) cls.groupNames = {};
