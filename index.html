@@ -372,7 +372,7 @@ background-size:28px 28px;min-height:500px;}
   <div class="ctrl-panel">
     <!-- Modes -->
     <button class="btn btn-primary active" id="modeNormal">一般座位</button>
-    <button class="btn btn-outline" id="modeGroup">小組座位</button>
+    <button class="btn btn-outline" id="modeGroup">班級小組座位</button>
     <button class="btn btn-outline" id="modeExam">考試座位</button>
     <button class="btn btn-outline" id="modeFree">自由座位</button>
     <button class="btn btn-outline" id="modeSciLab">自然教室</button>
@@ -1152,10 +1152,11 @@ class ClassroomApp {
     const leftSection  = document.createElement('div'); leftSection.className='scilab-section';
     const rightSection = document.createElement('div'); rightSection.className='scilab-section';
 
-    // 老師視角: [0,1,2] 在左欄, [3,4,5] 在右欄，各自由上到下
-    // 學生視角: 上下翻轉 → 左欄 [2,1,0], 右欄 [5,4,3]（左右欄不交換）
-    const leftOrder  = sv ? [2,1,0] : [0,1,2];
-    const rightOrder = sv ? [5,4,3] : [3,4,5];
+    // 老師視角: 左欄[0,1,2], 右欄[3,4,5]（各由上→下）
+    // 學生視角180度翻轉(上下+左右): 右欄變左且倒序, 左欄變右且倒序
+    //   新左欄 = [5,4,3], 新右欄 = [2,1,0]
+    const leftOrder  = sv ? [5,4,3] : [0,1,2];
+    const rightOrder = sv ? [2,1,0] : [3,4,5];
 
     const makeTable = (t) => {
       const tableEl = document.createElement('div');
@@ -1179,31 +1180,25 @@ class ClassroomApp {
       tableEl.appendChild(lbl);
 
       if (sv) {
-        // 學生視角：短邊在上，長邊在下
+        // 學生視角180度：短邊在上且左右翻[4,3]，長邊在下且左右翻[2,1,0]
         const shortRow = document.createElement('div');
         shortRow.className = 'scilab-short-row';
         [4,3].forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
         tableEl.appendChild(shortRow);
-
-        const div = document.createElement('div');
-        div.className = 'scilab-divider';
+        const div = document.createElement('div'); div.className='scilab-divider';
         tableEl.appendChild(div);
-
         const longRow = document.createElement('div');
         longRow.className = 'scilab-long-row';
         [2,1,0].forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
         tableEl.appendChild(longRow);
       } else {
-        // 老師視角：長邊在上，短邊在下
+        // 老師視角：長邊在上[0,1,2]，短邊在下[3,4]
         const longRow = document.createElement('div');
         longRow.className = 'scilab-long-row';
         [0,1,2].forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
         tableEl.appendChild(longRow);
-
-        const div = document.createElement('div');
-        div.className = 'scilab-divider';
+        const div = document.createElement('div'); div.className='scilab-divider';
         tableEl.appendChild(div);
-
         const shortRow = document.createElement('div');
         shortRow.className = 'scilab-short-row';
         [3,4].forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
@@ -1493,7 +1488,8 @@ class ClassroomApp {
   // ── Group Score ───────────────────────────────────────────────
   _showGroupScoreModal(g) {
     this.currentGroupNum = g;
-    document.getElementById('groupModalTitle').textContent = `第${g}組 積分調整`;
+    const gName=(this._cls.groupNames||{})[g-1] || `第${g}組`;
+    document.getElementById('groupModalTitle').textContent = `${gName} 積分調整`;
     document.getElementById('groupReason').value = '';
     this._showModal('groupScoreModal');
   }
@@ -1740,14 +1736,23 @@ class ClassroomApp {
 
   _showGroupScores() {
     const gs=this._cls.groupScores||{};
-    const groups=Array.from({length:6},(_,i)=>({g:i+1,score:gs[i+1]||0})).sort((a,b)=>b.score-a.score);
+    const cls=this._cls;
+    // 標題根據模式
+    const titleMap={group:'班級小組積分排行榜',scilab:'自然教室小組積分排行榜'};
+    const titleEl=document.querySelector('#groupScoresModal .modal-title');
+    if(titleEl) titleEl.textContent = titleMap[this.currentMode]||'小組積分排行榜';
+    const groups=Array.from({length:6},(_,i)=>{
+      const gNum=i+1;
+      const gName=(cls.groupNames||{})[i] || `第${gNum}組`;
+      return {g:gNum, name:gName, score:gs[gNum]||0};
+    }).sort((a,b)=>b.score-a.score);
     const list=document.getElementById('groupScoresList');list.innerHTML='';
     groups.forEach((g,i)=>{
       const row=document.createElement('div');row.className='score-row';
       row.innerHTML=`
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
-          <span style="font-size:0.875rem;">第${g.g}組</span>
+          <span style="font-size:0.875rem;">${g.name}</span>
         </div>
         <span style="font-weight:700;color:#10b981;font-size:0.95rem;">${g.score} 分</span>
       `;
@@ -1962,7 +1967,7 @@ class ClassroomApp {
 
     // Mode buttons
     const modeMap={modeNormal:'normal',modeGroup:'group',modeExam:'exam',modeFree:'free',modeSciLab:'scilab',modeComputer:'computer'};
-    const modeLabels={normal:'一般座位模式',group:'小組座位模式',exam:'考試座位模式',free:'自由座位模式',scilab:'自然教室模式',computer:'電腦教室模式'};
+    const modeLabels={normal:'一般座位模式',group:'班級小組座位模式',exam:'考試座位模式',free:'自由座位模式',scilab:'自然教室模式',computer:'電腦教室模式'};
     Object.entries(modeMap).forEach(([btnId,mode])=>{
       document.getElementById(btnId)?.addEventListener('click',()=>{
         this.currentMode=mode;
@@ -1971,6 +1976,13 @@ class ClassroomApp {
           if(el)el.className=b===btnId?'btn btn-primary active':'btn btn-outline';
         });
         document.getElementById('modeLabel').textContent=modeLabels[mode];
+        // 更新小組積分按鈕文字
+        const gsBtn=document.getElementById('showGroupScoresBtn');
+        if(gsBtn){
+          if(mode==='group') gsBtn.textContent='班級小組積分';
+          else if(mode==='scilab') gsBtn.textContent='自然教室積分';
+          else gsBtn.textContent='小組積分';
+        }
         this._renderSeats();
       });
     });
