@@ -395,6 +395,7 @@ background-size:28px 28px;min-height:500px;}
     <button class="btn btn-outline" id="showScoresBtn">個人積分</button>
     <button class="btn btn-outline" id="showGroupScoresBtn">小組積分</button>
     <span id="viewIndicator" style="font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:20px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🎓 老師視角</span>
+    <button class="btn btn-outline" id="showMissingHwBtn" style="border-color:#f59e0b;color:#d97706;">📋 缺交作業</button>
     <div class="divider"></div>
     <!-- 右側區塊：抽籤 + 計時器 -->
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
@@ -735,6 +736,18 @@ background-size:28px 28px;min-height:500px;}
 </div>
 
 <!-- Homework -->
+<!-- 缺交作業總覽 Modal -->
+<div class="modal-overlay" id="missingHwModal">
+  <div class="modal-box" style="max-width:560px;max-height:80vh;display:flex;flex-direction:column;">
+    <div class="modal-title" style="flex-shrink:0;">
+      📋 缺交作業總覽
+      <span id="missingHwCount" style="font-size:0.75rem;font-weight:600;color:#f59e0b;margin-left:8px;"></span>
+    </div>
+    <div id="missingHwBody" style="overflow-y:auto;flex:1;padding-right:4px;"></div>
+    <button class="btn btn-gray" id="closeMissingHwBtn" style="width:100%;padding:0.5rem;margin-top:1rem;flex-shrink:0;">關閉</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="homeworkModal">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-title" id="homeworkTitle"></div>
@@ -2005,6 +2018,92 @@ class ClassroomApp {
     this._showModal('homeworkModal');
   }
 
+  _showMissingHw() {
+    const hw = this.data.homeworkNotes || {};
+    const students = this._students;
+    // 收集所有缺交：{ hwName -> [{sid, st, date}] }
+    const byHw = {};
+    Object.entries(hw).forEach(([sid, list]) => {
+      const st = students[sid];
+      if (!st || !list.length) return;
+      list.forEach(h => {
+        if (!byHw[h.name]) byHw[h.name] = [];
+        byHw[h.name].push({ sid, st, date: h.date, hwName: h.name });
+      });
+    });
+
+    const body = document.getElementById('missingHwBody');
+    const countEl = document.getElementById('missingHwCount');
+    body.innerHTML = '';
+
+    const hwNames = Object.keys(byHw).sort();
+    const totalStudents = Object.values(byHw).reduce((s,a)=>s+a.length, 0);
+
+    if (!hwNames.length) {
+      body.innerHTML = '<div style="text-align:center;padding:2rem;color:#10b981;font-size:0.95rem;font-weight:600;">🎉 沒有缺交作業！</div>';
+      countEl.textContent = '';
+    } else {
+      countEl.textContent = `共 ${hwNames.length} 項作業，${totalStudents} 筆缺交`;
+      hwNames.forEach(hwName => {
+        const entries = byHw[hwName].sort((a,b) => a.st.seatNumber - b.st.seatNumber);
+        const group = document.createElement('div');
+        group.className = 'hw-group';
+
+        const title = document.createElement('div');
+        title.className = 'hw-group-title';
+        title.innerHTML = `<span>📌 ${hwName}</span><span class="hw-g-count">${entries.length} 人未交</span>`;
+        group.appendChild(title);
+
+        entries.forEach(({ sid, st, date, hwName: hn }) => {
+          const row = document.createElement('div');
+          row.className = 'hw-missing-row';
+          row.innerHTML = `
+            <div class="hw-student-info">
+              <span class="hw-seat-no">${st.seatNumber}</span>
+              <span style="font-weight:600;color:${st.gender==='male'?'#1e40af':'#991b1b'};">${st.name}</span>
+              <span class="hw-date">缺交日：${date}</span>
+            </div>`;
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-green btn-sm';
+          btn.textContent = '✓ 已交';
+          btn.style.cssText = 'padding:3px 12px;font-size:0.75rem;white-space:nowrap;';
+          btn.onclick = () => {
+            // 從 homeworkNotes 移除這筆
+            const list = this.data.homeworkNotes[sid];
+            if (list) {
+              const idx = list.findIndex(h => h.name === hn);
+              if (idx !== -1) list.splice(idx, 1);
+              if (!list.length) delete this.data.homeworkNotes[sid];
+            }
+            this._scheduleSave();
+            this._renderAll();
+            // 移除這行並更新count
+            row.style.opacity = '0.4';
+            row.style.pointerEvents = 'none';
+            btn.textContent = '✓ 已收';
+            btn.style.background = '#d1fae5';
+            // 更新數量顯示
+            const remaining = group.querySelectorAll('.hw-missing-row:not([data-done])').length - 1;
+            const countBadge = title.querySelector('.hw-g-count');
+            if (remaining <= 0) {
+              group.style.opacity = '0.5';
+              if (countBadge) countBadge.textContent = '全部已收 ✓';
+              if (countBadge) countBadge.style.background = '#d1fae5';
+              if (countBadge) countBadge.style.color = '#059669';
+            } else {
+              if (countBadge) countBadge.textContent = `${remaining} 人未交`;
+            }
+            row.dataset.done = '1';
+          };
+          row.appendChild(btn);
+          group.appendChild(row);
+        });
+        body.appendChild(group);
+      });
+    }
+    this._showModal('missingHwModal');
+  }
+
   _renderHwList() {
     const sid=this.currentSettingsSid;
     const list=(this._hw[sid]||[]);
@@ -2398,6 +2497,8 @@ class ClassroomApp {
       this._hideModal('homeworkModal');
       if(this.currentSettingsSid) this._showModal('studentSettingsModal');
     });
+    document.getElementById('showMissingHwBtn')?.addEventListener('click',()=>this._showMissingHw());
+    document.getElementById('closeMissingHwBtn')?.addEventListener('click',()=>this._hideModal('missingHwModal'));
 
     // Random / Reset
     document.getElementById('randomBtn')?.addEventListener('click',()=>this._randomSeating());
