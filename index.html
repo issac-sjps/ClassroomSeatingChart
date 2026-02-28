@@ -415,8 +415,9 @@ background-size:28px 28px;min-height:500px;}
           <button class="size-preset-btn active" data-sz="100" title="中">M</button>
           <button class="size-preset-btn" data-sz="120" title="大">L</button>
           <button class="size-preset-btn" data-sz="148" title="超大">XL</button>
+          <button class="size-preset-btn" data-sz="180" title="超超大">2XL</button>
         </div>
-        <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="160" value="100" style="width:70px;">
+        <input type="range" class="size-slider" id="seatSizeSlider" min="70" max="190" value="100" style="width:70px;">
         <button class="btn btn-primary btn-sm" id="randomBtn">🔀 隨機入座</button>
         <button class="btn btn-gray btn-sm" id="resetBtn">重置座位</button>
       </div>
@@ -1084,21 +1085,28 @@ class ClassroomApp {
     });
   }
 
-  // ── Sci Lab: 6桌 左3右3，每桌長邊3座(面台)+短邊2座(兩側) ──
+  // ── Sci Lab: 6桌 左3右3，每桌長邊3座(面台)+短邊2座 ──
   // 座位編號：桌0~5，每桌pos = table*5 + 0..4
-  // pos0,1,2 = 長邊(面台)；pos3,4 = 短邊(兩側)
+  // pos0,1,2 = 長邊(靠講台)；pos3,4 = 短邊(後側)
+  //
+  // 老師視角: 左欄[1,2,3組由上↓]  右欄[4,5,6組由上↓]  每組長邊在上
+  // 學生視角: 上下翻轉（不翻左右）
+  //           左欄[3,2,1組由上↓]  右欄[6,5,4組由上↓]  每組短邊在上
   _renderSciLab(container) {
+    const sv = this.isStudentView;
     const sz = this.seatSize;
     const grid = document.createElement('div');
     grid.className = 'scilab-grid';
 
-    // 左半3桌 + 右半3桌
     const leftSection  = document.createElement('div'); leftSection.className='scilab-section';
     const rightSection = document.createElement('div'); rightSection.className='scilab-section';
 
-    const tableOrder = this.isStudentView ? [2,1,0,5,4,3] : [0,1,2,3,4,5];
+    // 老師視角: [0,1,2] 在左欄, [3,4,5] 在右欄，各自由上到下
+    // 學生視角: 上下翻轉 → 左欄 [2,1,0], 右欄 [5,4,3]（左右欄不交換）
+    const leftOrder  = sv ? [2,1,0] : [0,1,2];
+    const rightOrder = sv ? [5,4,3] : [3,4,5];
 
-    tableOrder.forEach((t, idx) => {
+    const makeTable = (t) => {
       const tableEl = document.createElement('div');
       tableEl.className = 'scilab-table';
 
@@ -1108,39 +1116,45 @@ class ClassroomApp {
       lbl.onclick = () => this._showGroupScoreModal(t+1);
       tableEl.appendChild(lbl);
 
-      // 長邊3座（面向講台）
-      const longRow = document.createElement('div');
-      longRow.className = 'scilab-long-row';
-      const longOrder = this.isStudentView ? [2,1,0] : [0,1,2];
-      longOrder.forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
-      tableEl.appendChild(longRow);
+      if (sv) {
+        // 學生視角：短邊在上，長邊在下
+        const shortRow = document.createElement('div');
+        shortRow.className = 'scilab-short-row';
+        [4,3].forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
+        tableEl.appendChild(shortRow);
 
-      // 分隔線
-      const div = document.createElement('div');
-      div.className = 'scilab-divider';
-      tableEl.appendChild(div);
+        const div = document.createElement('div');
+        div.className = 'scilab-divider';
+        tableEl.appendChild(div);
 
-      // 短邊2座（兩側，面向講台）
-      const shortRow = document.createElement('div');
-      shortRow.className = 'scilab-short-row';
-      const shortOrder = this.isStudentView ? [4,3] : [3,4];
-      shortOrder.forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
-      tableEl.appendChild(shortRow);
+        const longRow = document.createElement('div');
+        longRow.className = 'scilab-long-row';
+        [2,1,0].forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
+        tableEl.appendChild(longRow);
+      } else {
+        // 老師視角：長邊在上，短邊在下
+        const longRow = document.createElement('div');
+        longRow.className = 'scilab-long-row';
+        [0,1,2].forEach(s => longRow.appendChild(this._mkSeat(t*5+s, sz)));
+        tableEl.appendChild(longRow);
 
-      // 老師視角: idx 0-2→左欄, 3-5→右欄
-      // 學生視角: tableOrder=[2,1,0,5,4,3], idx 0-2仍是左欄，但左右欄整體互換
-      if (idx < 3) leftSection.appendChild(tableEl);
-      else rightSection.appendChild(tableEl);
-    });
+        const div = document.createElement('div');
+        div.className = 'scilab-divider';
+        tableEl.appendChild(div);
 
-    // 學生視角：左右欄整體對調（模擬180度翻轉）
-    if (this.isStudentView) {
-      grid.appendChild(rightSection);
-      grid.appendChild(leftSection);
-    } else {
-      grid.appendChild(leftSection);
-      grid.appendChild(rightSection);
-    }
+        const shortRow = document.createElement('div');
+        shortRow.className = 'scilab-short-row';
+        [3,4].forEach(s => shortRow.appendChild(this._mkSeat(t*5+s, sz)));
+        tableEl.appendChild(shortRow);
+      }
+      return tableEl;
+    };
+
+    leftOrder.forEach(t  => leftSection.appendChild(makeTable(t)));
+    rightOrder.forEach(t => rightSection.appendChild(makeTable(t)));
+
+    grid.appendChild(leftSection);
+    grid.appendChild(rightSection);
     container.appendChild(grid);
   }
 
