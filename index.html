@@ -233,10 +233,35 @@ background-size:28px 28px;min-height:500px;}
 #freeArea.drop-active{background-color:rgba(139,92,246,0.04);}
 
 /* ── Lottery animations ── */
-.lottery-flash,.free-seat.lottery-flash{animation:lflash 0.3s ease-in-out infinite alternate!important;}
-@keyframes lflash{0%{background:#fef3c7!important;border-color:#f59e0b!important;}100%{background:#fde68a!important;border-color:#d97706!important;}}
-.lottery-selected,.free-seat.lottery-selected{background:#fee2e2!important;border-color:#ef4444!important;box-shadow:0 0 16px rgba(239,68,68,0.5)!important;animation:lpulse 1.5s ease-in-out infinite!important;}
-@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+/* 抽籤閃爍 - 用高優先度覆蓋性別底色 */
+.lottery-flash,
+.seat.seat-male.lottery-flash,
+.seat.seat-female.lottery-flash,
+.free-seat.lottery-flash,
+.free-seat.free-seat-male.lottery-flash,
+.free-seat.free-seat-female.lottery-flash {
+  background: #fef08a !important;
+  border-color: #eab308 !important;
+  animation: lflash 0.25s ease-in-out infinite alternate !important;
+  box-shadow: 0 0 18px rgba(234,179,8,0.7) !important;
+}
+@keyframes lflash {
+  0%  { background:#fef08a!important; border-color:#eab308!important; box-shadow:0 0 10px rgba(234,179,8,0.5)!important; }
+  100%{ background:#fde047!important; border-color:#ca8a04!important; box-shadow:0 0 28px rgba(234,179,8,0.9)!important; }
+}
+/* 抽中高亮 */
+.lottery-selected,
+.seat.seat-male.lottery-selected,
+.seat.seat-female.lottery-selected,
+.free-seat.lottery-selected,
+.free-seat.free-seat-male.lottery-selected,
+.free-seat.free-seat-female.lottery-selected {
+  background: linear-gradient(135deg,#fca5a5,#f87171) !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 20px rgba(239,68,68,0.6) !important;
+  animation: lpulse 1s ease-in-out infinite !important;
+}
+@keyframes lpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
 
 /* ── Timer ── */
 .timer-display{font-size:1rem;font-weight:700;color:#1e293b;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
@@ -1065,7 +1090,9 @@ class ClassroomApp {
     const gc = document.createElement('div'); gc.className='group-grid';
     // 老師視角: 左欄[0,1,2]由上→下, 右欄[3,4,5]由上→下
     // 學生視角: 上下翻 → 左欄[2,1,0], 右欄[5,4,3]（左右欄不換）
-    const groupOrder = sv ? [2,1,0,5,4,3] : [0,1,2,3,4,5];
+    // 老師視角: 上排[0,1,2] 下排[3,4,5]（左→右）
+    // 學生視角: 上下翻，左右不動 → 上排[3,4,5] 下排[0,1,2]
+    const groupOrder = sv ? [3,4,5,0,1,2] : [0,1,2,3,4,5];
     // 每組內座位排列：老師視角 [[0],[1,2],[3,4]]；學生視角上下翻 [[3,4],[1,2],[0]]
     const seatRows = sv ? [[3,4],[1,2],[0]] : [[0],[1,2],[3,4]];
     // 組名稱存在class資料裡
@@ -1517,16 +1544,15 @@ class ClassroomApp {
     eligible.forEach(({posKey}) => {
       const el = getEl(posKey);
       if (!el) return;
-      const iv = setInterval(()=>el.classList.toggle('lottery-flash'), 200+Math.random()*300);
-      this.flashIntervals.push(iv);
+      el.classList.add('lottery-flash');
+      // 用微小延遲讓每個座位動畫不同步，增加視覺刺激感
+      el.style.animationDelay = (Math.random() * 0.2) + 's';
+      this.flashIntervals.push(el); // 存 el 以便清除
     });
     setTimeout(() => {
-      this.flashIntervals.forEach(iv=>clearInterval(iv));
+      // 清除所有閃爍
+      this.flashIntervals.forEach(el=>{ if(el) el.classList.remove('lottery-flash'); el.style.animationDelay=''; });
       this.flashIntervals=[];
-      eligible.forEach(({posKey}) => {
-        const el = getEl(posKey);
-        if (el) el.classList.remove('lottery-flash');
-      });
       const winners = [...eligible].sort(()=>Math.random()-0.5).slice(0,count);
       this.selectedStudents = winners;
       winners.forEach(({posKey})=>{
@@ -1554,9 +1580,11 @@ class ClassroomApp {
   }
 
   _clearSel() {
-    this.flashIntervals.forEach(iv=>clearInterval(iv)); this.flashIntervals=[];
+    this.flashIntervals.forEach(el=>{ if(el && el.classList) { el.classList.remove('lottery-flash'); el.style.animationDelay=''; } });
+    this.flashIntervals=[];
     document.querySelectorAll('.lottery-selected,.lottery-flash').forEach(el=>{
       el.classList.remove('lottery-selected','lottery-flash');
+      el.style.animationDelay='';
     });
     this.selectedStudents=[];
     document.getElementById('clearSelBtn').style.display='none';
