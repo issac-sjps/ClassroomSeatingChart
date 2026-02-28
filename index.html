@@ -791,9 +791,12 @@ class ClassroomApp {
         // 補齊 classOrder（舊資料相容）
         // 補齊新模式座位和欄位
         Object.values(this.data.classes).forEach(cls => {
-          if (!cls.scilabSeats)   cls.scilabSeats   = {};
-          if (!cls.computerSeats) cls.computerSeats = {};
-          if (!cls.groupNames)    cls.groupNames     = {};
+          if (!cls.scilabSeats)            cls.scilabSeats            = {};
+          if (!cls.computerSeats)          cls.computerSeats          = {};
+          if (!cls.groupNames)             cls.groupNames             = {};
+          if (!cls.scilabGroupNames)       cls.scilabGroupNames       = {};
+          if (!cls.scilabGroupScores)      cls.scilabGroupScores      = {};
+          if (!cls.scilabGroupScoreHistory) cls.scilabGroupScoreHistory = {};
         });
         if (!this.data.classOrder || !Array.isArray(this.data.classOrder)) {
           this.data.classOrder = Object.keys(this.data.classes);
@@ -852,8 +855,10 @@ class ClassroomApp {
     for (let i=21;i<=35;i++) students[`s${i}`]={id:`s${i}`,seatNumber:i,name:`學生${i}`,gender:'female'};
     return { name, students, normalSeats:{}, groupSeats:{}, examSeats:{}, freeSeats:{},
              scilabSeats:{}, computerSeats:{},
-             groupNames:{},
-             scores:{}, scoreHistory:{}, groupScores:{}, groupScoreHistory:{} };
+             groupNames:{}, scilabGroupNames:{},
+             scores:{}, scoreHistory:{},
+             groupScores:{}, groupScoreHistory:{},
+             scilabGroupScores:{}, scilabGroupScoreHistory:{} };
   }
 
   get _cls() { return this.data.classes[this.currentClassId] || {}; }
@@ -1164,15 +1169,15 @@ class ClassroomApp {
 
       const lbl = document.createElement('button');
       lbl.className = 'scilab-table-lbl';
-      const scGroupName = (this._cls.groupNames||{})[t] || `第${t+1}組`;
+      const scGroupName = (this._cls.scilabGroupNames||{})[t] || `第${t+1}組`;
       lbl.textContent = scGroupName;
       lbl.onclick = () => this._showGroupScoreModal(t+1);
       lbl.ondblclick = (e) => {
         e.stopPropagation();
-        const newName = prompt(`修改組名（目前：${scGroupName}）`, scGroupName);
+        const newName = prompt(`修改自然教室組名（目前：${scGroupName}）`, scGroupName);
         if (newName !== null && newName.trim()) {
-          if (!this._cls.groupNames) this._cls.groupNames = {};
-          this._cls.groupNames[t] = newName.trim();
+          if (!this._cls.scilabGroupNames) this._cls.scilabGroupNames = {};
+          this._cls.scilabGroupNames[t] = newName.trim();
           this._scheduleSave();
           this._renderSeats();
         }
@@ -1488,7 +1493,9 @@ class ClassroomApp {
   // ── Group Score ───────────────────────────────────────────────
   _showGroupScoreModal(g) {
     this.currentGroupNum = g;
-    const gName=(this._cls.groupNames||{})[g-1] || `第${g}組`;
+    const isScilab = this.currentMode === 'scilab';
+    const names = isScilab ? (this._cls.scilabGroupNames||{}) : (this._cls.groupNames||{});
+    const gName = names[g-1] || `第${g}組`;
     document.getElementById('groupModalTitle').textContent = `${gName} 積分調整`;
     document.getElementById('groupReason').value = '';
     this._showModal('groupScoreModal');
@@ -1501,14 +1508,19 @@ class ClassroomApp {
     const amt = parseInt(document.getElementById('groupScoreAmt').value)||1;
     const change = type*amt;
     const cls = this.data.classes[this.currentClassId];
-    if (!cls.groupScores) cls.groupScores={};
-    if (!cls.groupScoreHistory) cls.groupScoreHistory={};
-    cls.groupScores[g] = (cls.groupScores[g]||0)+change;
-    if (!cls.groupScoreHistory[g]) cls.groupScoreHistory[g]=[];
-    cls.groupScoreHistory[g].push({ date:new Date().toLocaleString('zh-TW'), change, reason, total:cls.groupScores[g] });
+    const isScilab = this.currentMode === 'scilab';
+    const scKey  = isScilab ? 'scilabGroupScores'       : 'groupScores';
+    const hiKey  = isScilab ? 'scilabGroupScoreHistory'  : 'groupScoreHistory';
+    const names  = isScilab ? (cls.scilabGroupNames||{}) : (cls.groupNames||{});
+    const gName  = names[g-1] || `第${g}組`;
+    if (!cls[scKey]) cls[scKey]={};
+    if (!cls[hiKey]) cls[hiKey]={};
+    cls[scKey][g] = (cls[scKey][g]||0)+change;
+    if (!cls[hiKey][g]) cls[hiKey][g]=[];
+    cls[hiKey][g].push({ date:new Date().toLocaleString('zh-TW'), change, reason, total:cls[scKey][g] });
     this._scheduleSave();
     this._hideModal('groupScoreModal');
-    alert(`第${g}組 ${change>0?'+':''}${change}分 ✓`);
+    alert(`${gName} ${change>0?'+':''}${change}分 ✓`);
   }
 
   // ── Lottery ───────────────────────────────────────────────────
@@ -1735,20 +1747,18 @@ class ClassroomApp {
   }
 
   _showGroupScores() {
-    const gs=this._cls.groupScores||{};
-    const cls=this._cls;
-    // 標題根據模式
-    const titleMap={group:'班級小組積分排行榜',scilab:'自然教室小組積分排行榜'};
-    const titleEl=document.querySelector('#groupScoresModal .modal-title');
-    if(titleEl) titleEl.textContent = titleMap[this.currentMode]||'小組積分排行榜';
-    const groups=Array.from({length:6},(_,i)=>{
-      const gNum=i+1;
-      const gName=(cls.groupNames||{})[i] || `第${gNum}組`;
-      return {g:gNum, name:gName, score:gs[gNum]||0};
-    }).sort((a,b)=>b.score-a.score);
-    const list=document.getElementById('groupScoresList');list.innerHTML='';
+    const isScilab = this.currentMode === 'scilab';
+    const cls = this._cls;
+    const gs    = isScilab ? (cls.scilabGroupScores||{}) : (cls.groupScores||{});
+    const names = isScilab ? (cls.scilabGroupNames||{})  : (cls.groupNames||{});
+    const titleEl = document.querySelector('#groupScoresModal .modal-title');
+    if(titleEl) titleEl.textContent = isScilab ? '自然教室小組積分' : '班級小組積分';
+    const groups = Array.from({length:6},(_,i)=>({
+      g:i+1, name: names[i]||`第${i+1}組`, score: gs[i+1]||0
+    })).sort((a,b)=>b.score-a.score);
+    const list=document.getElementById('groupScoresList'); list.innerHTML='';
     groups.forEach((g,i)=>{
-      const row=document.createElement('div');row.className='score-row';
+      const row=document.createElement('div'); row.className='score-row';
       row.innerHTML=`
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</div>
@@ -2019,7 +2029,11 @@ class ClassroomApp {
     document.getElementById('resetGroupScoresBtn')?.addEventListener('click',()=>{
       if(!confirm('確定重置小組積分？'))return;
       const cls=this.data.classes[this.currentClassId];
-      cls.groupScores={};cls.groupScoreHistory={};
+      if(app.currentMode==='scilab'){
+        cls.scilabGroupScores={};cls.scilabGroupScoreHistory={};
+      } else {
+        cls.groupScores={};cls.groupScoreHistory={};
+      }
       this._scheduleSave();this._hideModal('groupScoresModal');
     });
 
